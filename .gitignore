@@ -1,3 +1,10 @@
+dataset/
+!src/dataset/
+notebooks/
+!augmentation_settings/*.json
+!augmentation_settings/border_mode.png
+!config/*.ini
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -122,8 +129,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
-.dmypy.json
-dmypy.json
 
 # Pyre type checker
 .pyre/

@@ -40,8 +40,8 @@ class Discriminator(nn.Module):
         for i, ch_out in enumerate(hidden_channels):
             s = 2 if i%3==1 else 1
             nn_modules.append(nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=s, padding=0))
-            nn_modules.append(nn.BatchNorm2d(ch_out))
             nn_modules.append(nn.LeakyReLU(0.2, inplace=True))
+            nn_modules.append(nn.BatchNorm2d(ch_out))
             ch_in = ch_out
         #nn_modules.append(nn.MaxPool2d(kernel_size=2, stride=2))
         self.conv = nn.Sequential(*nn_modules)
@@ -51,15 +51,18 @@ class Discriminator(nn.Module):
         size = sample.size()
         ch, w, h = size[1], size[2], size[3]
         self.fc = nn.Sequential(
-            nn.Linear(int(ch*w*h), 16),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Linear(16, 1),
-            #nn.Sigmoid(),
+            nn.Linear(int(ch*w*h), 1),
+            #nn.BatchNorm1d(1),
+            #nn.LeakyReLU(0.2, inplace=True),
+            #nn.Linear(16, 1),
+            #nn.BatchNorm1d(1),
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
         x = self.conv(x)
-        x = torch.flatten(x, start_dim=1)
+        #x = torch.flatten(x, start_dim=1)
+        x = x.view(x.shape[0], -1)
         x = self.fc(x)
         return x
 
@@ -142,42 +145,3 @@ class MobilenetDiscriminator(nn.Module):
     def forward(self, x):
         return self._forward_impl(x)
 
-
-"""
-class Discriminator(nn.Module):
-    def __init__(self, input_sample, hidden_channels):
-        super(Discriminator, self).__init__()
-        assert type(hidden_channels)==list, 'Type of hidden_channels must be list.'
-
-        size = input_sample.size()
-        ch_in, w, h = size[1], size[2], size[3]
-        print('Discriminator input: ', ch_in, w, h)
-        assert w==h, 'The width and height must match.'
-
-        nn_modules = list()
-        for i, ch_out in enumerate(hidden_channels):
-            s = 2 if i%2==0 else 1
-            nn_modules.append(nn.Conv2d(ch_in, ch_out, \
-                kernel_size=3, padding=0, stride=s, bias=False))
-            nn_modules.append(nn.BatchNorm2d(ch_out))
-            nn_modules.append(nn.LeakyReLU(0.2, inplace=True))
-            ch_in = ch_out
-        # nn_modules.append(nn.MaxPool2d(kernel_size=2, stride=2))
-        self.conv = nn.Sequential(*nn_modules)
-
-        with torch.no_grad():
-            sample = self.conv(input_sample)
-        size = sample.size()
-        ch, w, h = size[1], size[2], size[3]
-        print('Discriminator Internal: ', ch, w, h)
-        self.fc = nn.Sequential(
-            nn.Conv2d(ch_in, 1, w, 1, 0, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x):
-        x = self.conv(x)
-        #x = torch.flatten(x, start_dim=1)
-        x = self.fc(x)
-        return x.view(-1)
-"""

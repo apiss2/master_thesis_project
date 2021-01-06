@@ -100,11 +100,11 @@ class DAGeometricDataset(DASegmentationDataset):
         self.random_t_tps = random_t_tps
 
     def __getitem__(self, idx):
-        image_A = self._load_image(self.image_pathes_A[index])
-        label_A = self._load_label(self.label_pathes_A[index])
+        image_A = self._load_image(self.image_pathes_A[idx])
+        label_A = self._load_label(self.label_pathes_A[idx])
 
-        image_B = self._load_image(self.image_pathes_B[index])
-        label_B = self._load_label(self.label_pathes_B[index])
+        image_B = self._load_image(self.image_pathes_B[idx])
+        label_B = self._load_label(self.label_pathes_B[idx])
 
         if self.augmentation is not None:
             augmented_A = self.augmentation(image=image_A, mask=label_A)
@@ -123,9 +123,12 @@ class DAGeometricDataset(DASegmentationDataset):
             image_B = self.normalize_B(image_B)
 
         # generate theta
-        theta = generate_theta(self.geometric, self.random_t_tps)
-        theta = torch.Tensor(theta.astype(np.float32))
+        theta_A = generate_theta(self.geometric, self.random_t_tps)
+        theta_A = torch.Tensor(theta_A.astype(np.float32))
 
-        sample = {'x_A':image_A, 'y_A':label_A, \
-                  'x_B':image_B, 'y_B':label_B, 'theta':theta}
+        theta_B = generate_theta(self.geometric, self.random_t_tps)
+        theta_B = torch.Tensor(theta_B.astype(np.float32))
+
+        sample = {'x_A':image_A, 'y_A':label_A, 'theta_A':theta_A, \
+                  'x_B':image_B, 'y_B':label_B, 'theta_B':theta_B}
         return sample

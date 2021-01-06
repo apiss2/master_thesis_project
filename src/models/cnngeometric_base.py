@@ -10,8 +10,8 @@ import segmentation_models_pytorch as smp
 from segmentation_models_pytorch.encoders import get_encoder
 
 class FeatureExtraction(torch.nn.Module):
-    def __init__(self, name, in_channels=3, depth=5, weights=None,
-                use_cuda=True, freeze=True):
+    def __init__(self, name, in_channels=3, depth=5,
+                weights=None, freeze=True):
         super(FeatureExtraction, self).__init__()
         self.model = get_encoder(name, in_channels, depth, weights)
 
@@ -19,10 +19,6 @@ class FeatureExtraction(torch.nn.Module):
         if freeze:
             for param in self.model.parameters():
                 param.requires_grad = False
-
-        # move to GPU
-        if use_cuda:
-            self.model = self.model.cuda()
 
     def forward(self, image_batch):
         return self.model(image_batch)
@@ -58,8 +54,7 @@ class FeatureCorrelation(torch.nn.Module):
         return correlation_tensor
 
 class FeatureRegression(nn.Module):
-    def __init__(self, output_dim=6, use_cuda=True,
-                    input_shape=(225,15,15),
+    def __init__(self, output_dim=6, input_shape=(225,15,15),
                     kernel_sizes=[3,3,3], channels=[128,64,32]):
         super(FeatureRegression, self).__init__()
         num_layers = len(kernel_sizes)
@@ -81,10 +76,6 @@ class FeatureRegression(nn.Module):
             input_size -= (i-1)
         linear_ch = channels[-1] * input_size**2
         self.linear = nn.Linear(linear_ch, output_dim)
-
-        if use_cuda:
-            self.conv.cuda()
-            self.linear.cuda()
 
     def forward(self, x):
         x = self.conv(x)

@@ -4,6 +4,7 @@ import segmentation_models_pytorch as smp
 from .BCEloss import BCELoss, BCEWithLogitsLoss
 from .CrossEntropy import CrossEntropyLoss, CrossEntropyWithDiceLoss, CrossEntropyLoss2d, CE_Dice_Loss
 from .gridloss import TransformedGridLoss, GridMetric
+from .DistanceLoss import MAE, MSE
 
 def get_loss(name:str, class_weight:list=None, **kwargs):
     if class_weight is not None:
@@ -15,6 +16,10 @@ def get_loss(name:str, class_weight:list=None, **kwargs):
         loss = smp.utils.losses.JaccardLoss(**kwargs)
     elif name.lower() == 'bce':
         loss = BCELoss(**kwargs)
+    elif name.lower() == 'mae':
+        loss = MAE(**kwargs)
+    elif name.lower() == 'mse':
+        loss = MSE(**kwargs)
     elif name.lower() == 'bcewithlogit':
         loss = BCEWithLogitsLoss(**kwargs)
     elif name.lower() == 'ce_dice':

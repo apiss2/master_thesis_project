@@ -1,7 +1,14 @@
+import os
 import sys
+
+import cv2
 import torch
+import numpy as np
 from tqdm import tqdm as tqdm
+
 from ..utils.meter import AverageValueMeter
+from ..transformation.UnNormalize import UnNormalize
+from ..utils.utils import onehot2color
 
 def set_requires_grad(model, requires_grad=True):
     for param in model.parameters():
@@ -103,3 +110,39 @@ class GANEpoch(Epoch):
 
         self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
         self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
+
+class Tester(Epoch):
+    def __init__(self, model, loss, metrics:list, device:str='cpu',
+                    label_type:str='binary_label', color_palette:list=None,
+                    save_path:str=None, mean:list=None, std:list=None):
+        super().__init__(
+            model=model, loss=loss, metrics=metrics,
+            stage_name='test', device=device,
+        )
+        self.label_type = label_type
+        self.save_image = False if save_path is None else True
+        self.save_path = save_path
+        self.color_palette = color_palette
+        self.all_logs = dict()
+        self.unorm = None if None in [mean, std] else UnNormalize(mean=mean, std=std)
+
+    def on_epoch_start(self):
+        self.iter_num = 0
+        self.model.eval()
+
+    def imwrite(self, x, name, is_image=False, unnorm=False):
+        if is_image and self.unorm is not None:
+            x = self.unorm(x)
+        pred_np = x.cpu().detach().numpy().transpose([1,2,0])
+        image = pred_np if is_image else self.convert2image(pred_np)
+        image = (image*255).astype('uint8')
+        path = os.path.join(self.save_path, name)
+        cv2.imwrite(path, image)
+
+    def convert2image(self, output):
+        output = np.where(output>0.5, 1, 0)
+        if self.label_type=='binary_label':
+            output = output[...,0]
+        else:
+            output = onehot2color(output, self.color_palette)
+        return output

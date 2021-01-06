@@ -37,7 +37,7 @@ class CE_Dice_Loss(nn.Module):
     def forward(self, inputs, targets):
         CEloss = self.nll_loss(self.softmax(inputs), targets.argmax(dim=1))
         diceloss = self.diceloss(self.softmax(inputs), targets)
-        return diceloss + CEloss
+        return diceloss*0.1 + CEloss
 
 class CrossEntropyWithDiceLoss(nn.CrossEntropyLoss, Loss):
     __name__ = 'CrossEntropyWithDiceLoss'

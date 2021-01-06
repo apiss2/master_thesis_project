@@ -13,14 +13,14 @@ from src.models.segmentation import get_SegmentationModel
 from src.dataset.albmentation_augmentation import get_transforms
 from src.dataset.segmentation_dataset import SegmentationDataset
 # training
-from src.training.simple_segmentation_trainer import TestEpoch
+from src.training.segmentation_trainer import TestEpoch
 from src.loss.get_loss import get_loss, get_metric
 # utils
 from src.utils.utils import get_pathes
 
 if __name__ == '__main__':
     # init_training
-    from config import simple_segmentation_settings as settings
+    from config import segmentation_settings as settings
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
     # metric function
     print('metrics : ', settings.metrics)
-    metrics = [get_metric(name) for name in settings.metrics]
+    metrics = [get_metric(name, ignore_channels=[0]) for name in settings.metrics]
 
     # trainner
     save_path = os.path.join(settings.save_dir, 'pred_image')
@@ -63,6 +63,7 @@ if __name__ == '__main__':
 
     # evaluate
     logs = test_epoch.run(valid_loader)
+
     json_path = os.path.join(settings.save_dir, 'results.json')
     with open(json_path, 'w') as f:
         json.dump(logs, f, indent=4)

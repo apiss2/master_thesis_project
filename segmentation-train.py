@@ -9,14 +9,14 @@ from src.models.segmentation import get_SegmentationModel
 from src.dataset.albmentation_augmentation import get_transforms
 from src.dataset.segmentation_dataset import SegmentationDataset
 # training
-from src.training.simple_segmentation_trainer import TrainEpoch, ValidEpoch
+from src.training.segmentation_trainer import TrainEpoch, ValidEpoch
 from src.loss.get_loss import get_loss, get_metric
 # utils
 from src.utils.utils import get_pathes, is_best_score, init_logging, get_optimizer
 
 if __name__ == '__main__':
     # init_training
-    from config import simple_segmentation_settings as settings
+    from config import segmentation_settings as settings
     train_logger, valid_logger = init_logging(settings.save_dir)
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"

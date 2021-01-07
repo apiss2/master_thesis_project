@@ -6,8 +6,8 @@ import configparser
 import sys
 sys.path.append('../')
 
-from src.utils.utils import get_normParam, get_colorPalette, get_classWeight
-from src.dataset.albmentation_augmentation import get_transformedImageSize
+from src.utils import utils
+from src.dataset import albmentation_augmentation as aug
 
 # load config file
 parser = argparse.ArgumentParser()
@@ -50,14 +50,14 @@ label_A_valid_path = config.get('label_A_valid')
 image_B_valid_path = config.get('image_B_valid')
 label_B_valid_path = config.get('label_B_valid')
 
-mean_A, std_A = get_normParam(config.get('MR_mean'), config.get('MR_std'))
-mean_B, std_B = get_normParam(config.get('CT_mean'), config.get('CT_std'))
+mean_A, std_A = utils.get_normParam(config.get('MR_mean'), config.get('MR_std'))
+mean_B, std_B = utils.get_normParam(config.get('CT_mean'), config.get('CT_std'))
 class_num = int(config.get('class_num'))
 label_type = config.get('label_type')
-color_palette = get_colorPalette(config.get('color_palette'))
+color_palette = utils.get_colorPalette(config.get('color_palette'))
 
 aug_settings_path = config.get('augmentation_setting_json')
-image_size = get_transformedImageSize(aug_settings_path)
+image_size = aug.get_transformedImageSize(aug_settings_path)
 
 # save settings
 if config.get('color_palette') is not None:
@@ -83,7 +83,7 @@ discriminator_channels = list(map(lambda x: int(x), config.get('discriminator_ch
 # loss func
 loss_seg = config.get('loss_seg')
 loss_DA = config.get('loss_DA')
-class_weight = get_classWeight(config.get('class_weight'))
+class_weight = utils.get_classWeight(config.get('class_weight'))
 
 if config.get('class_weight') is not None:
     shutil.copy(config.get('class_weight'), os.path.join(save_dir, os.path.basename(config.get('class_weight'))))

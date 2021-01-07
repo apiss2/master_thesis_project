@@ -8,15 +8,15 @@ from torch.utils.data import DataLoader, Dataset
 import segmentation_models_pytorch as smp
 
 # model
-from src.models.segmentation import get_SegmentationModel
+from src.models import segmentation as seg
 # dataset
-from src.dataset.albmentation_augmentation import get_transforms
+from src.dataset import albmentation_augmentation as aug
 from src.dataset.segmentation_dataset import SegmentationDataset
 # training
+from src.utils import opt_util
 from src.training.segmentation_trainer import TestEpoch
-from src.loss.get_loss import get_loss, get_metric
 # utils
-from src.utils.utils import get_pathes
+from src.utils import utils
 
 if __name__ == '__main__':
     # init_training
@@ -24,10 +24,10 @@ if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
-    valid_image_pathes = get_pathes(settings.valid_image_path)
-    valid_label_pathes = get_pathes(settings.valid_label_path)
+    valid_image_pathes = utils.get_pathes(settings.valid_image_path)
+    valid_label_pathes = utils.get_pathes(settings.valid_label_path)
 
-    valid_aug = get_transforms(settings.aug_settings_path, train=False)
+    valid_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
     valid_dataset = SegmentationDataset(valid_image_pathes, valid_label_pathes,
                         class_num=settings.class_num, mean=settings.mean, std=settings.std,
@@ -39,17 +39,17 @@ if __name__ == '__main__':
     # model definition
     print('model : ', settings.model)
     print('encoder : ', settings.encoder)
-    model = get_SegmentationModel(settings.model, settings.encoder, activation=settings.activation, \
+    model = seg.get_SegmentationModel(settings.model, settings.encoder, activation=settings.activation, \
         depth=settings.depth, class_num=settings.class_num)
     model.load_state_dict(torch.load(settings.model_save_path))
 
     # loss function
     print('loss : ', settings.loss)
-    loss = get_loss(settings.loss, settings.class_weight)
+    loss = opt_util.get_loss(settings.loss, settings.class_weight)
 
     # metric function
     print('metrics : ', settings.metrics)
-    metrics = [get_metric(name, ignore_channels=[0]) for name in settings.metrics]
+    metrics = [opt_util.get_metric(name, ignore_channels=[0]) for name in settings.metrics]
 
     # trainner
     save_path = os.path.join(settings.save_dir, 'pred_image')

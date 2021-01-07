@@ -6,7 +6,7 @@ import configparser
 import sys
 sys.path.append('../')
 
-from src.utils.utils import get_normParam, get_colorPalette, get_classWeight
+from src.utils import utils
 
 # load config file
 parser = argparse.ArgumentParser()
@@ -43,10 +43,10 @@ train_label_path = config.get('train_label_path')
 valid_image_path = config.get('valid_image_path')
 valid_label_path = config.get('valid_label_path')
 
-mean, std = get_normParam(config.get('mean'), config.get('std'))
+mean, std = utils.get_normParam(config.get('mean'), config.get('std'))
 class_num = int(config.get('class_num'))
 label_type = config.get('label_type')
-color_palette = get_colorPalette(config.get('color_palette'))
+color_palette = utils.get_colorPalette(config.get('color_palette'))
 
 aug_settings_path = config.get('augmentation_setting_json')
 
@@ -72,7 +72,7 @@ padding_mode = config.get('padding_mode')
 
 # loss func
 loss = config.get('loss')
-class_weight = get_classWeight(config.get('class_weight'))
+class_weight = utils.get_classWeight(config.get('class_weight'))
 
 if config.get('class_weight') is not None:
     shutil.copy(config.get('class_weight'), os.path.join(save_dir, os.path.basename(config.get('class_weight'))))

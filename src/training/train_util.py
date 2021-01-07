@@ -135,7 +135,8 @@ class Tester(Epoch):
             x = self.unorm(x)
         pred_np = x.cpu().detach().numpy().transpose([1,2,0])
         image = pred_np if is_image else self.convert2image(pred_np)
-        image = (image*255).astype('uint8')
+        image = (image * 255).astype('uint8')
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         path = os.path.join(self.save_path, name)
         cv2.imwrite(path, image)
 

@@ -7,37 +7,37 @@ from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler as lrs
 
 # model
-from src.models.DA_model import Discriminator, MobilenetDiscriminator
-from src.models.segmentation import get_SegmentationModel
+from src.models.DA_model import Discriminator
+from src.models import segmentation as seg
 # dataset
 from src.dataset.segmentation_dataset import DASegmentationDataset
-from src.dataset.albmentation_augmentation import get_transforms, get_transformedImageSize
+from src.dataset import albmentation_augmentation as aug
 # training
-from src.loss.get_loss import get_loss, get_metric
+from src.utils import opt_util
 from src.training.DANN_segmentation_trainer import TrainEpoch, ValidEpoch
 # utils
-from src.utils.utils import get_pathes, get_optimizer, is_best_score, init_logging
+from src.utils import utils
 
 if __name__ == '__main__':
     # init_training
     from config import DANN_segmentation_settings as settings
-    train_logger, valid_logger = init_logging(settings.save_dir)
+    train_logger, valid_logger = utils.init_logging(settings.save_dir)
 
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
-    image_A_train_pathes = get_pathes(settings.image_A_train_path)
-    label_A_train_pathes = get_pathes(settings.label_A_train_path)
-    image_B_train_pathes = get_pathes(settings.image_B_train_path)
-    label_B_train_pathes = get_pathes(settings.label_B_train_path)
+    image_A_train_pathes = utils.get_pathes(settings.image_A_train_path)
+    label_A_train_pathes = utils.get_pathes(settings.label_A_train_path)
+    image_B_train_pathes = utils.get_pathes(settings.image_B_train_path)
+    label_B_train_pathes = utils.get_pathes(settings.label_B_train_path)
 
-    image_A_valid_pathes = get_pathes(settings.image_A_valid_path)
-    label_A_valid_pathes = get_pathes(settings.label_A_valid_path)
-    image_B_valid_pathes = get_pathes(settings.image_B_valid_path)
-    label_B_valid_pathes = get_pathes(settings.label_B_valid_path)
+    image_A_valid_pathes = utils.get_pathes(settings.image_A_valid_path)
+    label_A_valid_pathes = utils.get_pathes(settings.label_A_valid_path)
+    image_B_valid_pathes = utils.get_pathes(settings.image_B_valid_path)
+    label_B_valid_pathes = utils.get_pathes(settings.label_B_valid_path)
 
-    train_aug = get_transforms(settings.aug_settings_path, train=True)
-    valid_aug = get_transforms(settings.aug_settings_path, train=False)
+    train_aug = aug.get_transforms(settings.aug_settings_path, train=True)
+    valid_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
     train_dataset = DASegmentationDataset(
                         image_A_train_pathes, label_A_train_pathes,
@@ -64,7 +64,7 @@ if __name__ == '__main__':
     # segmentation_model definition
     print('model : ', settings.model)
     print('encoder : ', settings.encoder)
-    model = get_SegmentationModel(settings.model, settings.encoder, activation=settings.activation,\
+    model = seg.get_SegmentationModel(settings.model, settings.encoder, activation=settings.activation,\
         encoder_weights=settings.weights, depth=settings.depth, class_num=settings.class_num)
 
     # discriminator definition
@@ -76,19 +76,19 @@ if __name__ == '__main__':
     # loss function
     print('loss_seg : ', settings.loss_seg)
     print('loss_DA : ', settings.loss_DA)
-    loss = get_loss(settings.loss_seg, settings.class_weight)
-    loss_D = get_loss(settings.loss_DA)
+    loss = opt_util.get_loss(settings.loss_seg, settings.class_weight)
+    loss_D = opt_util.get_loss(settings.loss_DA)
 
     # metric function
     print('metrics_seg : ', settings.metrics)
     print('metrics_d : ', settings.metrics_D)
-    metrics = [get_metric(name, ignore_channels=[0]) for name in settings.metrics]
-    metrics_D = [get_metric(name) for name in settings.metrics_D]
+    metrics = [opt_util.get_metric(name, ignore_channels=[0]) for name in settings.metrics]
+    metrics_D = [opt_util.get_metric(name) for name in settings.metrics_D]
 
     # optimizer
     print('optimizer : ', settings.optimizer)
-    optimizer = get_optimizer(settings.optimizer, model.parameters(), settings.lr)
-    optimizer_D = get_optimizer(settings.optimizer, model_D.parameters(), settings.lr)
+    optimizer = opt_util.get_optimizer(settings.optimizer, model.parameters(), settings.lr)
+    optimizer_D = opt_util.get_optimizer(settings.optimizer, model_D.parameters(), settings.lr)
 
     # scheduler
     scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         valid_logs = valid_epoch.run(valid_loader)
 
         # save model
-        if is_best_score(valid_logs, settings.monitor_metric, best_score) and epoch>=int(settings.epochs/2):
+        if utils.is_best_score(valid_logs, settings.monitor_metric, best_score) and epoch>=int(settings.epochs/2):
             torch.save(model.state_dict(), settings.model_save_path)
             best_score = valid_logs[settings.monitor_metric]
 

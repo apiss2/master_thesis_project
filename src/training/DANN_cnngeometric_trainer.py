@@ -1,14 +1,17 @@
 import sys
+
 import torch
 from tqdm import tqdm as tqdm
 
-from .train_util import GANEpoch
 from ..utils.meter import AverageValueMeter
+from .train_util import GANEpoch
+
 
 class TrainEpoch(GANEpoch):
     def __init__(self, model, loss, metrics:list, optimizer, \
                     model_D, loss_D, metrics_D:list, optimizer_D,
-                    modelupdate_freq:int=10, geometric_transform=None,
+                    modelupdate_freq:int=10, discupdate_freq:int=5,
+                    geometric_transform=None,
                     segmentation_metrics:list=None, device='cpu'):
         super().__init__(
             model=model, loss=loss, metrics=metrics,
@@ -18,6 +21,7 @@ class TrainEpoch(GANEpoch):
         self.optimizer = optimizer
         self.optimizer_D = optimizer_D
         self.modelupdate_freq = modelupdate_freq
+        self.discupdate_freq = discupdate_freq
 
         self.geometric_transform = geometric_transform
         self.segmentation_metrics = [metric.to(self.device) for metric in segmentation_metrics] if segmentation_metrics is not None else None
@@ -40,8 +44,9 @@ class TrainEpoch(GANEpoch):
             if self.iter%self.modelupdate_freq==0:
                 self.model.FeatureExtraction.train()
                 self.optimizer.zero_grad()
-            self.model_D.train()
-            self.optimizer_D.zero_grad()
+            if self.iter%self.discupdate_freq==0:
+                self.model_D.train()
+                self.optimizer_D.zero_grad()
             # predict
             features = self.model.FeatureExtraction.forward(x)[-1]
             pred_D = self.model_D.forward(features).squeeze()
@@ -50,7 +55,8 @@ class TrainEpoch(GANEpoch):
             loss.backward()
             if self.iter%self.modelupdate_freq==0:
                 self.optimizer.step()
-            self.optimizer_D.step()
+            if self.iter%self.discupdate_freq==0:
+                self.optimizer_D.step()
             self.update_metrics(y_D, pred_D, self.metrics_D)
 
             ### update generator ###
@@ -120,4 +126,3 @@ class ValidEpoch(GANEpoch):
                 pred_label = self.geometric_transform(src_label, pred_theta)
                 # metrics
                 self.update_metrics(tgt_label, pred_label, self.segmentation_metrics)
-

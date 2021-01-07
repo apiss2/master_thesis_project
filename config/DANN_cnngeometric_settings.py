@@ -1,14 +1,14 @@
-import os
-import shutil
 import argparse
 import configparser
-
+import os
+import shutil
 import sys
+
+from src.dataset import albmentation_augmentation as aug
+from src.utils import utils
+
 sys.path.append('../')
 
-from src.utils.utils import get_normParam, get_colorPalette, get_classWeight
-from src.utils.utils import geometric_choice
-from src.dataset.albmentation_augmentation import get_transformedImageSize
 
 # load config file
 parser = argparse.ArgumentParser()
@@ -34,13 +34,15 @@ shutil.copy(args.config, os.path.join(save_dir, os.path.basename(args.config)))
 
 # util
 geometric = config.get('geometric')
-cnn_output_dim = geometric_choice(geometric)
+cnn_output_dim = utils.geometric_choice(geometric)
 model_save_path = os.path.join(save_dir, config.get('model_save_name'))
 
 # training
 monitor_metric = config.get('monitor_metric')
 epochs = int(config.get('epochs'))
+
 modelupdate_freq = int(config.get('modelupdate_freq'))
+discupdate_freq = int(config.get('discupdate_freq'))
 
 # dataset
 image_A_train_path = config.get('image_A_train')
@@ -53,15 +55,15 @@ label_A_valid_path = config.get('label_A_valid')
 image_B_valid_path = config.get('image_B_valid')
 label_B_valid_path = config.get('label_B_valid')
 
-mean_A, std_A = get_normParam(config.get('MR_mean'), config.get('MR_std'))
-mean_B, std_B = get_normParam(config.get('CT_mean'), config.get('CT_std'))
+mean_A, std_A = utils.get_normParam(config.get('MR_mean'), config.get('MR_std'))
+mean_B, std_B = utils.get_normParam(config.get('CT_mean'), config.get('CT_std'))
 class_num = int(config.get('class_num'))
 label_type = config.get('label_type')
 random_t_tps = float(config.get('random_t_tps'))
-color_palette = get_colorPalette(config.get('color_palette'))
+color_palette = utils.get_colorPalette(config.get('color_palette'))
 
 aug_settings_path = config.get('augmentation_setting_json')
-image_size = get_transformedImageSize(aug_settings_path)
+image_size = aug.get_transformedImageSize(aug_settings_path)
 
 # save settings
 if config.get('color_palette') is not None:
@@ -87,7 +89,7 @@ discriminator_channels = list(map(lambda x: int(x), config.get('discriminator_ch
 # loss func
 loss = config.get('loss')
 loss_D = config.get('loss_D')
-class_weight = get_classWeight(config.get('class_weight'))
+class_weight = utils.get_classWeight(config.get('class_weight'))
 
 if config.get('class_weight') is not None:
     shutil.copy(config.get('class_weight'), os.path.join(save_dir, os.path.basename(config.get('class_weight'))))
@@ -105,5 +107,3 @@ lr = float(config.get('lr'))
 # scheduler
 decay_schedule = list(map(lambda x: int(x), config.get('decay_schedule').split('-')))
 gamma = float(config.get('gamma'))
-
-

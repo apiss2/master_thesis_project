@@ -12,35 +12,35 @@ from src.models.cnngeometric import CNNGeometric
 from src.transformation.core import GeometricTnf
 # dataset
 from src.dataset.geometric_transform_dataset import DAGeometricDataset
-from src.dataset.albmentation_augmentation import get_transforms, get_transformedImageSize
+from src.dataset import albmentation_augmentation as aug
 # training
-from src.loss.get_loss import get_loss, get_metric
+from src.utils import opt_util
 from src.training.DANN_cnngeometric_trainer import TrainEpoch, ValidEpoch
 # utils
-from src.utils.utils import get_pathes, is_best_score, init_logging, geometric_choice, get_optimizer
+from src.utils import utils
 
 
 if __name__ == '__main__':
     # init_training
     from config import DANN_cnngeometric_settings as settings
-    train_logger, valid_logger = init_logging(settings.save_dir)
+    train_logger, valid_logger = utils.init_logging(settings.save_dir)
 
     use_cuda = torch.cuda.is_available()
     DEVICE = "cuda" if use_cuda else "cpu"
 
     # datasets
-    image_A_train_pathes = get_pathes(settings.image_A_train_path)
-    label_A_train_pathes = get_pathes(settings.label_A_train_path)
-    image_B_train_pathes = get_pathes(settings.image_B_train_path)
-    label_B_train_pathes = get_pathes(settings.label_B_train_path)
+    image_A_train_pathes = utils.get_pathes(settings.image_A_train_path)
+    label_A_train_pathes = utils.get_pathes(settings.label_A_train_path)
+    image_B_train_pathes = utils.get_pathes(settings.image_B_train_path)
+    label_B_train_pathes = utils.get_pathes(settings.label_B_train_path)
 
-    image_A_valid_pathes = get_pathes(settings.image_A_valid_path)
-    label_A_valid_pathes = get_pathes(settings.label_A_valid_path)
-    image_B_valid_pathes = get_pathes(settings.image_B_valid_path)
-    label_B_valid_pathes = get_pathes(settings.label_B_valid_path)
+    image_A_valid_pathes = utils.get_pathes(settings.image_A_valid_path)
+    label_A_valid_pathes = utils.get_pathes(settings.label_A_valid_path)
+    image_B_valid_pathes = utils.get_pathes(settings.image_B_valid_path)
+    label_B_valid_pathes = utils.get_pathes(settings.label_B_valid_path)
 
-    train_aug = get_transforms(settings.aug_settings_path, train=True)
-    valid_aug = get_transforms(settings.aug_settings_path, train=False)
+    train_aug = aug.get_transforms(settings.aug_settings_path, train=True)
+    valid_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
     train_dataset = DAGeometricDataset(image_A_train_pathes, label_A_train_pathes,
                         image_B_train_pathes, label_B_train_pathes,
@@ -84,18 +84,18 @@ if __name__ == '__main__':
     # loss function
     print('loss : ', settings.loss)
     print('loss_D  : ', settings.loss_D)
-    loss = get_loss(settings.loss)
-    loss_D  = get_loss(settings.loss_D)
+    loss = opt_util.get_loss(settings.loss)
+    loss_D  = opt_util.get_loss(settings.loss_D)
 
     # metric function
-    metrics = [get_metric(name) for name in settings.metrics]
-    metrics_seg = [get_metric(name) for name in settings.metrics_seg]
-    metrics_D = [get_metric(name) for name in settings.metrics_D]
+    metrics = [opt_util.get_metric(name) for name in settings.metrics]
+    metrics_seg = [opt_util.get_metric(name) for name in settings.metrics_seg]
+    metrics_D = [opt_util.get_metric(name) for name in settings.metrics_D]
 
     # optimizer
     print('optimizer : ', settings.optimizer)
-    optimizer = get_optimizer(settings.optimizer, model.parameters(), settings.lr)
-    optimizer_D = get_optimizer(settings.optimizer, model_D.parameters(), settings.lr)
+    optimizer = opt_util.get_optimizer(settings.optimizer, model.parameters(), settings.lr)
+    optimizer_D = opt_util.get_optimizer(settings.optimizer, model_D.parameters(), settings.lr)
 
     # scheduler
     scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)
@@ -106,6 +106,7 @@ if __name__ == '__main__':
         model=model, loss = loss, metrics = metrics,
         model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
         modelupdate_freq=settings.modelupdate_freq,
+        discupdate_freq=settings.discupdate_freq,
         optimizer=optimizer, optimizer_D=optimizer_D,
         geometric_transform=geometric_transform, device=DEVICE,
     )
@@ -124,7 +125,7 @@ if __name__ == '__main__':
         valid_logs = valid_epoch.run(valid_loader)
 
         # save model
-        if is_best_score(valid_logs, settings.monitor_metric, best_score) and epoch>=int(settings.epochs/2):
+        if utils.is_best_score(valid_logs, settings.monitor_metric, best_score) and epoch>=int(settings.epochs/2):
             torch.save(model.state_dict(), settings.model_save_path)
             best_score = valid_logs[settings.monitor_metric]
 

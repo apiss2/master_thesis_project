@@ -8,8 +8,6 @@ import numpy as np
 import configparser
 import matplotlib.pyplot as plt
 
-from .sam import SAM
-
 def init_logging(save_dir):
     train_logger = logging.getLogger('train')
     valid_logger = logging.getLogger('valid')
@@ -95,14 +93,3 @@ def onehot2color(pred_image, color_palette):
         for channel, color in enumerate(colors):
             label[...,channel] += tmp*color/255
     return label.clip(0,1)
-
-def get_optimizer(name:str, params, lr:float, **kwargs):
-    if name.lower() == 'adam':
-        optimizer = torch.optim.Adam(params=params, lr=lr, **kwargs)
-        #optimizer = SAM(params, torch.optim.Adam, lr=lr, **kwargs)
-    elif name.lower() == 'sgd':
-        optimizer = torch.optim.SGD(params=params, lr=lr, **kwargs)
-        #optimizer = SAM(params, torch.optim.SGD, lr=lr, **kwargs)
-    else:
-        assert False, 'Unexpected optimizer name: {}'.format(name)
-    return optimizer

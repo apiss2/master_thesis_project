@@ -1,10 +1,13 @@
 import torch
+
 import segmentation_models_pytorch as smp
 
-from .BCEloss import BCELoss, BCEWithLogitsLoss
-from .CrossEntropy import CrossEntropyLoss, CrossEntropyWithDiceLoss, CrossEntropyLoss2d, CE_Dice_Loss
-from .gridloss import TransformedGridLoss, GridMetric
-from .DistanceLoss import MAE, MSE
+from ..loss.BCEloss import BCELoss, BCEWithLogitsLoss
+from ..loss.CrossEntropy import (CE_Dice_Loss, CrossEntropyLoss,
+                                 CrossEntropyLoss2d, CrossEntropyWithDiceLoss)
+from ..loss.DistanceLoss import MAE, MSE
+from ..loss.gridloss import GridMetric, TransformedGridLoss
+#from ..loss.sam import SAM
 
 def get_loss(name:str, class_weight:list=None, **kwargs):
     if class_weight is not None:
@@ -36,6 +39,7 @@ def get_loss(name:str, class_weight:list=None, **kwargs):
         assert False, 'Unexpected loss name: {}'.format(name)
     return loss
 
+
 def get_metric(name:str, **kwargs):
     if name.lower() == 'iou':
         metric = smp.utils.metrics.IoU(**kwargs)
@@ -53,3 +57,14 @@ def get_metric(name:str, **kwargs):
         assert False, 'Unexpected metric name: {}'.format(name)
     return metric
 
+
+def get_optimizer(name:str, params, lr:float, **kwargs):
+    if name.lower() == 'adam':
+        optimizer = torch.optim.Adam(params=params, lr=lr, **kwargs)
+        #optimizer = SAM(params, torch.optim.Adam, lr=lr, **kwargs)
+    elif name.lower() == 'sgd':
+        optimizer = torch.optim.SGD(params=params, lr=lr, **kwargs)
+        #optimizer = SAM(params, torch.optim.SGD, lr=lr, **kwargs)
+    else:
+        assert False, 'Unexpected optimizer name: {}'.format(name)
+    return optimizer

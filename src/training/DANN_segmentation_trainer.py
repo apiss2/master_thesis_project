@@ -30,10 +30,12 @@ class TrainEpoch(GANEpoch):
             y_D = (torch.ones(x.size()[0])*(1-i)).to(self.device)#.unsqueeze(-1)
             ### update discriminator ###
             self.model.eval()
-            if self.iter%self.modelupdate_freq==0:
+            self.set_requires_grad(self.model, requires_grad=False)
+            if self.iter % self.modelupdate_freq == 0:
+                self.set_requires_grad(self.model.encoder, requires_grad=True)
                 self.model.encoder.train()
                 self.optimizer.zero_grad()
-            self.model_D.train()
+            self.set_requires_grad(self.model_D, requires_grad=True)
             self.optimizer_D.zero_grad()
             # predict
             features = self.model.encoder.forward(x)[-1]
@@ -48,7 +50,9 @@ class TrainEpoch(GANEpoch):
             self.update_metrics(y_D, pred_D, self.metrics_D)
 
             ### update generator ###
+            self.set_requires_grad(self.model, requires_grad=True)
             self.model.train()
+            self.set_requires_grad(self.model_D, requires_grad=False)
             self.model_D.eval()
             self.optimizer.zero_grad()
             # predict

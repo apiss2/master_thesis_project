@@ -10,9 +10,6 @@ from ..utils.meter import AverageValueMeter
 from ..transformation.UnNormalize import UnNormalize
 from ..utils.utils import onehot2color
 
-def set_requires_grad(model, requires_grad=True):
-    for param in model.parameters():
-        param.requires_grad = requires_grad
 
 class Epoch:
     def __init__(self, model, loss, metrics:list,
@@ -71,6 +68,10 @@ class Epoch:
 
     def batch_update(self, batch):
         raise NotImplementedError
+
+    def set_requires_grad(self, model, requires_grad=True):
+        for param in model.parameters():
+            param.requires_grad = requires_grad
 
     def run(self, dataloader):
         self._initIteration()

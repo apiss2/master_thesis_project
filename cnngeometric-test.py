@@ -51,6 +51,9 @@ if __name__ == '__main__':
                         freeze_FeatureExtractionModel=settings.freeze)
     model.load_state_dict(torch.load(settings.model_save_path))
 
+    if settings.pretrained_model_path is not None:
+        model.load_state_dict(torch.load(settings.pretrained_model_path))
+
     # loss function
     print('loss : ', settings.loss)
     loss = opt_util.get_loss(settings.loss, settings.class_weight)

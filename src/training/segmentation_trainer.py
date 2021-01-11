@@ -67,13 +67,13 @@ class TestEpoch(Tester):
 
         if self.save_image:
             # predict image
-            name = 'predict_{}_{:03}.png'.format(modality, self.iter_num)
+            name = 'predict_{:03}.png'.format(self.iter_num)
             self.imwrite(pred[0], name)
 
             # image
-            name = 'image_{}_{:03}.png'.format(modality, self.iter_num)
-            self.imwrite(x[0], name, is_image=True)
+            name = 'image_{:03}.png'.format(self.iter_num)
+            self.imwrite(self.unorm(x[0]), name, is_image=True)
 
             # label
-            name = 'label_{}_{:03}.png'.format(modality, self.iter_num)
+            name = 'label_{:03}.png'.format(self.iter_num)
             self.imwrite(y[0], name)

@@ -130,9 +130,7 @@ class Tester(Epoch):
         self.iter_num = 0
         self.model.eval()
 
-    def imwrite(self, x, name, is_image=False, unnorm=False):
-        if is_image and self.unorm is not None:
-            x = self.unorm(x)
+    def imwrite(self, x, name, is_image=False):
         pred_np = x.cpu().detach().numpy().transpose([1,2,0])
         image = pred_np if is_image else self.convert2image(pred_np)
         image = (image * 255).astype('uint8')

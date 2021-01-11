@@ -12,9 +12,9 @@ from .cnngeometric_base import FeatureExtraction, FeatureCorrelation, FeatureReg
 
 class CNNGeometric(nn.Module):
     # 入力は240*240のみを想定
-    def __init__(self, encoder='resnet',
+    def __init__(self, encoder='resnet50',
                  in_channels=3, depth=5, weights=None,
-                 output_dim=6, input_size=240,
+                 output_dim=6, input_size=256,
                  fr_kernel_sizes=[3,3,3],
                  fr_channels=[128,64,32],
                  corr_type='3D',

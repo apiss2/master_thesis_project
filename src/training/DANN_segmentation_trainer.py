@@ -101,17 +101,20 @@ class ValidEpoch(GANEpoch):
 
 
 class TestEpoch(Tester):
-    def __init__(self, model, loss, metrics:list, device:str='cpu',
-                    target_modality:str = 'A',
-                    label_type:str='binary_label', color_palette:list=None,
-                    save_path:str=None, mean:list=None, std:list=None):
+    def __init__(self, model, loss, metrics: list, device: str = 'cpu',
+                    target_modality:str = 'A', save_path: str = None,
+                    label_type: str = 'binary_label', color_palette: list = None,
+                    mean_A: list = None, std_A: list = None,
+                    mean_B: list = None, std_B: list = None):
         super().__init__(
             model=model, loss=loss, metrics=metrics, device=device,
-            label_type=label_type, color_palette=color_palette,
-            save_path=save_path, mean=mean, std=std
+            label_type=label_type, color_palette=color_palette, save_path=save_path
         )
         assert target_modality == 'A' or target_modality == 'B', 'target_modality must be A or B'
         self.target_modality = target_modality
+
+        self.unorm_A = None if None in [mean_A, std_A] else UnNormalize(mean=mean_A, std=std_A)
+        self.unorm_B = None if None in [mean_B, std_B] else UnNormalize(mean=mean_B, std=std_B)
 
     def batch_update(self, batch):
         self.iter_num += 1
@@ -142,7 +145,8 @@ class TestEpoch(Tester):
 
                 # image
                 name = 'image_{}_{:03}.png'.format(modality, self.iter_num)
-                self.imwrite(x[0], name, is_image=True)
+                x = self.unorm_A(x[0]) if modality == 'A' else self.unorm_B(x[0])
+                self.imwrite(x, name, is_image=True)
 
                 # label
                 name = 'label_{}_{:03}.png'.format(modality, self.iter_num)

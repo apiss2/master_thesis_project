@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     # optimizer
     print('optimizer : ', settings.optimizer)
-    optimizer = utils.init_logging(settings.optimizer, model.parameters(), settings.lr)
+    optimizer = opt_util.get_optimizer(settings.optimizer, model.parameters(), settings.lr)
 
     # scheduler
     scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)

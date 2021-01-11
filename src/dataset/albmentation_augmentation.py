@@ -45,6 +45,8 @@ def get_augmentation(settings:dict):
             transforms.append(get_BrightnessContrast(params))
         elif name == 'dropout':
             transforms.append(get_dropout(params))
+        elif name == 'blur':
+            transforms.append(get_blur(params))
         else:
             assert False, 'Invalid augmentation name: {}'.format(name)
     return transforms
@@ -151,6 +153,35 @@ def get_distortion(params:dict):
         alpha_affine = params['alpha_affine']
         trans = A.ElasticTransform(p=probability,
             alpha=alpha, sigma=sigma, alpha_affine=alpha_affine)
+    else:
+        ValueError('Unexpected flip type')
+    return trans
+
+def get_blur(params:dict):
+    blur_type = params['type'].lower()
+    probability = params['probability']
+    if blur_type=='blur':
+        blur_limit = params['blur_limit']
+        trans = A.Blur(p=probability,
+            blur_limit=blur_limit)
+    elif blur_type=='motionblur':
+        blur_limit = params['blur_limit']
+        sigma_limit = params['sigma_limit']
+        trans = A.MotionBlur(p=probability,
+            blur_limit=blur_limit, sigma_limit=sigma_limit)
+    elif blur_type=='gaussianblur':
+        alpha = params['alpha']
+        sigma = params['sigma']
+        alpha_affine = params['alpha_affine']
+        trans = A.GaussianBlur(p=probability,
+            alpha=alpha, sigma=sigma, alpha_affine=alpha_affine)
+    elif blur_type=='glassblur':
+        sigma = params['sigma']
+        max_delta = params['max_delta']
+        iterations = params['iterations']
+        mode = params['mode']
+        trans = A.GlassBlur(p=probability, mode=mode,
+            sigma=sigma, max_delta=max_delta, iterations=iterations)
     else:
         ValueError('Unexpected flip type')
     return trans

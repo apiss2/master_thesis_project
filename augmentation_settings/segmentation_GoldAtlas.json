@@ -1,0 +1,82 @@
+{
+    "output_size":256,
+
+    "preprocess": [
+        {
+            "transform":"resize",
+            "params":{
+                "height":512,
+                "width":512
+            }
+        }
+    ],
+
+    "after": [
+        {
+            "transform":"crop",
+            "params":{
+                "type":"crop",
+                "x_min":128,
+                "y_min":150,
+                "x_max":384,
+                "y_max":406
+            }
+        }
+    ],
+
+    "augmentation":[
+        {
+            "transform":"flip",
+            "params":{
+                "type":"holizontal",
+                "probability":0.5
+            }
+        },
+        {
+            "transform":"brightnesscontrast",
+            "params":{
+                "brightness_limit":0.2,
+                "contrast_limit":0.2,
+                "probability":0.95
+            }
+        },
+        {
+            "transform":"blur",
+            "params":{
+                "type":"blur",
+                "probability":0.5,
+                "blur_limit": [3, 7]
+            }
+        },
+        {
+            "transform":"affine",
+            "params":{
+                "scale":0.02,
+                "rotate":5,
+                "shift":0.02,
+                "border_mode":0,
+                "probability":1
+            }
+        },
+        {
+            "transform":"noise",
+            "params":{
+                "type":"AdditiveGaussianNoise",
+                "probability":0.5
+            }
+        },
+        {
+            "transform":"dropout",
+            "params":{
+                "probability":1.0,
+                "max_holes":15,
+                "min_holes":3,
+                "max_height":32,
+                "min_height":16,
+                "max_width":32,
+                "min_width":16,
+                "fill_value":0
+            }
+        }
+    ]
+}

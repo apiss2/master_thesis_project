@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
     # trainner
     train_epoch = TrainEpoch(
-        model=model, loss = loss, metrics = metrics,
+        model=model, loss = loss, metrics = metrics, metrics_seg=metrics_seg,
         model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
         modelupdate_freq=settings.modelupdate_freq,
         discupdate_freq=settings.discupdate_freq,
@@ -113,7 +113,7 @@ if __name__ == '__main__':
     valid_epoch = ValidEpoch(
         model=model, loss = loss, metrics = metrics, device=DEVICE,
         model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
-        geometric_transform=geometric_transform
+        geometric_transform=geometric_transform,  metrics_seg=metrics_seg
     )
 
     # training

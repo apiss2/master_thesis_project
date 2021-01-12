@@ -20,13 +20,9 @@ from src.utils import opt_util
 from src.training.DANN_cnngeometric_trainer import TestEpoch
 # utils
 from src.utils import utils
-
+import settings
 
 if __name__ == '__main__':
-    # init_training
-    from config import DANN_cnngeometric_settings as settings
-    train_logger, valid_logger = utils.init_logging(settings.save_dir)
-
     use_cuda = torch.cuda.is_available()
     DEVICE = "cuda" if use_cuda else "cpu"
 
@@ -65,8 +61,13 @@ if __name__ == '__main__':
     loss = opt_util.get_loss(settings.loss)
 
     # metric function
+    print('metrics : ', settings.metrics)
     metrics = [opt_util.get_metric(name) for name in settings.metrics]
-    metrics_seg = [opt_util.get_metric(name) for name in settings.metrics_seg]
+    if settings.metrics_seg is not None:
+        print('metrics_seg : ', settings.metrics_seg)
+        metrics_seg = [opt_util.get_metric(name) for name in settings.metrics_seg]
+    else:
+        metrics_seg = None
 
     # trainner
     save_path = os.path.join(settings.save_dir, 'pred_image')
@@ -77,7 +78,8 @@ if __name__ == '__main__':
         target_modality='A', multi_modality=True,
         geometric_transform=geometric_transform, save_path=save_path,
         mean_A=settings.mean_A, std_A=settings.std_A,
-        mean_B=settings.mean_B, std_B=settings.std_B
+        mean_B=settings.mean_B, std_B=settings.std_B,
+        segmentation_metrics=metrics_seg
     )
     epoch_multi_B = TestEpoch(
         model=model, loss = loss, metrics = metrics, device=DEVICE,
@@ -85,6 +87,7 @@ if __name__ == '__main__':
         geometric_transform=geometric_transform, save_path=save_path,
         mean_A=settings.mean_A, std_A=settings.std_A,
         mean_B=settings.mean_B, std_B=settings.std_B
+        segmentation_metrics=metrics_seg
     )
 
     epoch_mono_A = TestEpoch(
@@ -92,12 +95,14 @@ if __name__ == '__main__':
         target_modality='A', multi_modality=False,
         geometric_transform=geometric_transform, save_path=save_path,
         mean_A=settings.mean_A, std_A=settings.std_A
+        segmentation_metrics=metrics_seg
     )
     epoch_mono_B = TestEpoch(
         model=model, loss = loss, metrics = metrics, device=DEVICE,
         target_modality='B', multi_modality=False,
         geometric_transform=geometric_transform, save_path=save_path,
         mean_B=settings.mean_B, std_B=settings.std_B
+        segmentation_metrics=metrics_seg
     )
 
     # training

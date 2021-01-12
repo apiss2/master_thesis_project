@@ -18,13 +18,11 @@ from src.utils import opt_util
 from src.training.DANN_cnngeometric_trainer import TrainEpoch, ValidEpoch
 # utils
 from src.utils import utils
-
+import settings
 
 if __name__ == '__main__':
     # init_training
-    from config import DANN_cnngeometric_settings as settings
     train_logger, valid_logger = utils.init_logging(settings.save_dir)
-
     use_cuda = torch.cuda.is_available()
     DEVICE = "cuda" if use_cuda else "cpu"
 
@@ -79,7 +77,7 @@ if __name__ == '__main__':
     with torch.no_grad():
         sample = torch.rand((2, 3, settings.image_size, settings.image_size))
         sample = model.FeatureExtraction.forward(sample)[-1]
-    model_D = Discriminator(sample, settings.discriminator_channels)
+    model_D = Discriminator(sample, settings.discriminator_channels, use_GAP=False)
 
     # loss function
     print('loss : ', settings.loss)
@@ -88,8 +86,11 @@ if __name__ == '__main__':
     loss_D  = opt_util.get_loss(settings.loss_D)
 
     # metric function
+    print('metrics : ', settings.metrics)
+    print('metrics_seg  : ', settings.metrics_seg)
+    print('metrics_D  : ', settings.metrics_D)
     metrics = [opt_util.get_metric(name) for name in settings.metrics]
-    metrics_seg = [opt_util.get_metric(name) for name in settings.metrics_seg]
+    metrics_seg = [opt_util.get_metric(name, ignore_channels=[0]) for name in settings.metrics_seg]
     metrics_D = [opt_util.get_metric(name) for name in settings.metrics_D]
 
     # optimizer
@@ -98,12 +99,13 @@ if __name__ == '__main__':
     optimizer_D = opt_util.get_optimizer(settings.optimizer, model_D.parameters(), settings.lr)
 
     # scheduler
+    print('scheduler : ', settings.scheduler)
     scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)
     scheduler_D = lrs.MultiStepLR(optimizer_D, milestones=settings.decay_schedule, gamma=settings.gamma)
 
     # trainner
     train_epoch = TrainEpoch(
-        model=model, loss = loss, metrics = metrics, metrics_seg=metrics_seg,
+        model=model, loss = loss, metrics = metrics, segmentation_metrics=metrics_seg,
         model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
         modelupdate_freq=settings.modelupdate_freq,
         discupdate_freq=settings.discupdate_freq,
@@ -113,7 +115,7 @@ if __name__ == '__main__':
     valid_epoch = ValidEpoch(
         model=model, loss = loss, metrics = metrics, device=DEVICE,
         model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
-        geometric_transform=geometric_transform,  metrics_seg=metrics_seg
+        geometric_transform=geometric_transform,  segmentation_metrics=metrics_seg
     )
 
     # training

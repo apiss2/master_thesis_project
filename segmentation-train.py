@@ -13,12 +13,11 @@ from src.utils import opt_util
 from src.training.segmentation_trainer import TrainEpoch, ValidEpoch
 # utils
 from src.utils import utils
+import settings
 
 if __name__ == '__main__':
     # init_training
-    from config import segmentation_settings as settings
     train_logger, valid_logger = utils.init_logging(settings.save_dir)
-
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
@@ -66,7 +65,9 @@ if __name__ == '__main__':
     optimizer = opt_util.get_optimizer(settings.optimizer, model.parameters(), settings.lr)
 
     # scheduler
-    scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)
+    print('scheduler : ', settings.scheduler_type)
+    scheduler = opt_util.get_scheduler(settings.scheduler_type, optimizer, milestones=settings.decay_schedule, gamma=settings.gamma,
+                                    T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
 
     # trainner
     train_epoch = TrainEpoch(

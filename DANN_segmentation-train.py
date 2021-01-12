@@ -17,12 +17,11 @@ from src.utils import opt_util
 from src.training.DANN_segmentation_trainer import TrainEpoch, ValidEpoch
 # utils
 from src.utils import utils
+import settings
 
 if __name__ == '__main__':
     # init_training
-    from config import DANN_segmentation_settings as settings
     train_logger, valid_logger = utils.init_logging(settings.save_dir)
-
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
@@ -71,13 +70,13 @@ if __name__ == '__main__':
     with torch.no_grad():
         sample = torch.rand((2, 3, settings.image_size, settings.image_size))
         sample = model.encoder.forward(sample)[-1]
-    model_D = Discriminator(sample, settings.discriminator_channels)
+    model_D = Discriminator(sample, settings.discriminator_channels, use_GAP=True)
 
     # loss function
-    print('loss_seg : ', settings.loss_seg)
-    print('loss_DA : ', settings.loss_DA)
-    loss = opt_util.get_loss(settings.loss_seg, settings.class_weight)
-    loss_D = opt_util.get_loss(settings.loss_DA)
+    print('loss : ', settings.loss)
+    print('loss_D : ', settings.loss_D)
+    loss = opt_util.get_loss(settings.loss, settings.class_weight)
+    loss_D = opt_util.get_loss(settings.loss_D)
 
     # metric function
     print('metrics_seg : ', settings.metrics)
@@ -91,8 +90,11 @@ if __name__ == '__main__':
     optimizer_D = opt_util.get_optimizer(settings.optimizer, model_D.parameters(), settings.lr)
 
     # scheduler
-    scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)
-    scheduler_D = lrs.MultiStepLR(optimizer_D, milestones=settings.decay_schedule, gamma=settings.gamma)
+    print('scheduler : ', settings.scheduler_type)
+    scheduler = opt_util.get_scheduler(settings.scheduler_type, optimizer, milestones=settings.decay_schedule, gamma=settings.gamma,
+                                    T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
+    scheduler_D = opt_util.get_scheduler(settings.scheduler_type, optimizer_D, milestones=settings.decay_schedule, gamma=settings.gamma,
+                                    T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
 
     # trainner
     train_epoch = TrainEpoch(

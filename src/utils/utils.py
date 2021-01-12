@@ -32,6 +32,8 @@ def get_pathes(path, extension=None):
     return pathes
 
 def geometric_choice(geometric):
+    if geometric is None:
+        return None
     if geometric=='affine':
         cnn_output_dim = 6
     elif geometric=='hom':

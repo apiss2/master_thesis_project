@@ -20,12 +20,9 @@ from src.utils import opt_util
 from src.training.DANN_segmentation_trainer import TestEpoch
 # utils
 from src.utils import utils
+import settings
 
 if __name__ == '__main__':
-    # init_training
-    from config import DANN_segmentation_settings as settings
-    train_logger, valid_logger = utils.init_logging(settings.save_dir)
-
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets

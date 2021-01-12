@@ -1,13 +1,15 @@
 import torch
+import torch.optim.lr_scheduler as lrs
 
 import segmentation_models_pytorch as smp
+from warmup_scheduler import GradualWarmupScheduler
 
 from ..loss.BCEloss import BCELoss, BCEWithLogitsLoss
 from ..loss.CrossEntropy import (CE_Dice_Loss, CrossEntropyLoss,
                                  CrossEntropyLoss2d, CrossEntropyWithDiceLoss)
 from ..loss.DistanceLoss import MAE, MSE
 from ..loss.gridloss import GridMetric, TransformedGridLoss
-#from ..loss.sam import SAM
+
 
 def get_loss(name:str, class_weight:list=None, **kwargs):
     if class_weight is not None:
@@ -61,10 +63,24 @@ def get_metric(name:str, **kwargs):
 def get_optimizer(name:str, params, lr:float, **kwargs):
     if name.lower() == 'adam':
         optimizer = torch.optim.Adam(params=params, lr=lr, **kwargs)
-        #optimizer = SAM(params, torch.optim.Adam, lr=lr, **kwargs)
     elif name.lower() == 'sgd':
         optimizer = torch.optim.SGD(params=params, lr=lr, **kwargs)
-        #optimizer = SAM(params, torch.optim.SGD, lr=lr, **kwargs)
     else:
         assert False, 'Unexpected optimizer name: {}'.format(name)
     return optimizer
+
+
+def get_scheduler(name: str, optimizer, milestones: list = None, gamma: float = 0.2,
+                    T_max: int = None, eta_min: float = 0.00001, warmupepochs: int = 10):
+    if name == 'MultiStepLR':
+        assert milestones is not None, '"milestones" is missing.'
+        scheduler = lrs.MultiStepLR(optimizer, milestones=milestones, gamma=gamma)
+    elif name == 'CosineAnnealingLR':
+        assert T_max is not None, '"T_max" is missing.'
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min)
+    elif name == 'Warmup':
+        after_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max, eta_min=eta_min)
+        scheduler = GradualWarmupScheduler(optimizer, multiplier=1, total_epoch=warmupepochs, after_scheduler=after_scheduler)
+    else:
+        assert False, f'No such scheduler: {name}'
+    return scheduler

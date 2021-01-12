@@ -3,7 +3,6 @@ warnings.simplefilter('ignore')
 
 # torch
 import torch
-import torch.optim.lr_scheduler as lrs
 from torch.utils.data import DataLoader
 
 # model
@@ -17,12 +16,11 @@ from src.training.cnngeometric_trainer import TrainEpoch, ValidEpoch
 from src.utils import opt_util
 # utils
 from src.utils import utils
+import settings
 
 if __name__ == '__main__':
     # init_training
-    from config import cnngeometric_settings as settings
     train_logger, valid_logger  = utils.init_logging(settings.save_dir)
-
     use_cuda = torch.cuda.is_available()
     DEVICE = "cuda" if use_cuda else "cpu"
 
@@ -68,16 +66,22 @@ if __name__ == '__main__':
     loss = opt_util.get_loss(settings.loss, geometric=settings.geometric)
 
     # metric function
+    print('metrics : ', settings.metrics)
     metrics = [opt_util.get_metric(name, geometric=settings.geometric) for name in settings.metrics]
     if settings.metrics_seg is not None:
+        print('metrics_seg : ', settings.metrics_seg)
         metrics_seg = [opt_util.get_metric(name) for name in settings.metrics_seg]
+    else:
+        metrics_seg = None
 
     # optimizer
     print('optimizer : ', settings.optimizer)
     optimizer = opt_util.get_optimizer(settings.optimizer, model.parameters(), settings.lr)
 
     # scheduler
-    scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)
+    print('scheduler : ', settings.scheduler_type)
+    scheduler = opt_util.get_scheduler(settings.scheduler_type, optimizer, milestones=settings.decay_schedule, gamma=settings.gamma,
+                                    T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
 
     # trainner
     train_epoch = TrainEpoch(

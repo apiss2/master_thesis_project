@@ -27,18 +27,18 @@ if __name__ == '__main__':
     DEVICE = "cuda" if use_cuda else "cpu"
 
     # datasets
-    valid_images_pathes = utils.get_pathes(settings.valid_image_path)
-    valid_labels_pathes = utils.get_pathes(settings.valid_label_path)
+    test_images_pathes = utils.get_pathes(settings.test_image_path)
+    test_labels_pathes = utils.get_pathes(settings.test_label_path)
 
-    valid_aug = aug.get_transforms(settings.aug_settings_path, train=False)
+    test_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
-    valid_dataset = GeometricDataset(image_pathes=valid_images_pathes, label_pathes=valid_labels_pathes,\
-                                    geometric=settings.geometric, augmentation=valid_aug,\
+    test_dataset = GeometricDataset(image_pathes=test_images_pathes, label_pathes=test_labels_pathes,\
+                                    geometric=settings.geometric, augmentation=test_aug,\
                                     class_num=settings.class_num, mean=settings.mean, std=settings.std,\
                                     random_t_tps=settings.random_t_tps,\
                                     label_type=settings.label_type, color_palette=settings.color_palette)
 
-    valid_loader = DataLoader(valid_dataset, batch_size=1,
+    test_loader = DataLoader(test_dataset, batch_size=1,
                             shuffle=False, num_workers=settings.num_workers)
 
     geometric_transform = GeometricTnf(geometric_model=settings.geometric, use_cuda=use_cuda, \
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     )
 
     # evaluate
-    logs = test_epoch.run(valid_loader)
+    logs = test_epoch.run(test_loader)
 
     json_path = os.path.join(settings.save_dir, 'results.json')
     with open(json_path, 'w') as f:

@@ -42,6 +42,8 @@ train_image_path = config.get('train_image_path')
 train_label_path = config.get('train_label_path')
 valid_image_path = config.get('valid_image_path')
 valid_label_path = config.get('valid_label_path')
+test_image_path = config.get('test_image_path')
+test_label_path = config.get('test_label_path')
 
 mean, std = utils.get_normParam(config.get('mean'), config.get('std'))
 class_num = int(config.get('class_num'))

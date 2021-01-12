@@ -31,20 +31,20 @@ if __name__ == '__main__':
     DEVICE = "cuda" if use_cuda else "cpu"
 
     # datasets
-    image_A_valid_pathes = utils.get_pathes(settings.image_A_valid_path)
-    label_A_valid_pathes = utils.get_pathes(settings.label_A_valid_path)
-    image_B_valid_pathes = utils.get_pathes(settings.image_B_valid_path)
-    label_B_valid_pathes = utils.get_pathes(settings.label_B_valid_path)
-    valid_aug = aug.get_transforms(settings.aug_settings_path, train=False)
+    image_A_test_pathes = utils.get_pathes(settings.image_A_test_path)
+    label_A_test_pathes = utils.get_pathes(settings.label_A_test_path)
+    image_B_test_pathes = utils.get_pathes(settings.image_B_test_path)
+    label_B_test_pathes = utils.get_pathes(settings.label_B_test_path)
+    test_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
-    valid_dataset = DAGeometricDataset(image_A_valid_pathes, label_A_valid_pathes,
-                        image_B_valid_pathes, label_B_valid_pathes,
+    test_dataset = DAGeometricDataset(image_A_test_pathes, label_A_test_pathes,
+                        image_B_test_pathes, label_B_test_pathes,
                         class_num=settings.class_num, color_palette=settings.color_palette,
                         label_type=settings.label_type, geometric=settings.geometric,
                         mean_A=settings.mean_A, std_A=settings.std_A,
                         mean_B=settings.mean_B, std_B=settings.std_B,
-                        augmentation=valid_aug)
-    valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=0)
+                        augmentation=test_aug)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
     geometric_transform = GeometricTnf(geometric_model=settings.geometric, use_cuda=use_cuda, \
                                         padding_mode=settings.padding_mode, size=settings.image_size)
@@ -101,13 +101,13 @@ if __name__ == '__main__':
     )
 
     # training
-    logs_multi_A = epoch_multi_A.run(valid_loader)
-    logs_multi_B = epoch_multi_B.run(valid_loader)
+    logs_multi_A = epoch_multi_A.run(test_loader)
+    logs_multi_B = epoch_multi_B.run(test_loader)
     logs_multi = (logs_multi_A, logs_multi_B)
     all_logs_multi = (epoch_multi_A.all_logs, epoch_multi_B.all_logs)
 
-    logs_mono_A = epoch_mono_A.run(valid_loader)
-    logs_mono_B = epoch_mono_B.run(valid_loader)
+    logs_mono_A = epoch_mono_A.run(test_loader)
+    logs_mono_B = epoch_mono_B.run(test_loader)
     logs_mono = (logs_mono_A, logs_mono_B)
     all_logs_mono = (epoch_mono_A.all_logs, epoch_mono_B.all_logs)
 

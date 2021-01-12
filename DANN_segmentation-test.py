@@ -29,23 +29,23 @@ if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
-    image_A_valid_pathes = utils.get_pathes(settings.image_A_valid_path)
-    label_A_valid_pathes = utils.get_pathes(settings.label_A_valid_path)
-    image_B_valid_pathes = utils.get_pathes(settings.image_B_valid_path)
-    label_B_valid_pathes = utils.get_pathes(settings.label_B_valid_path)
+    image_A_test_pathes = utils.get_pathes(settings.image_A_test_path)
+    label_A_test_pathes = utils.get_pathes(settings.label_A_test_path)
+    image_B_test_pathes = utils.get_pathes(settings.image_B_test_path)
+    label_B_test_pathes = utils.get_pathes(settings.label_B_test_path)
 
-    valid_aug = aug.get_transforms(settings.aug_settings_path, train=False)
+    test_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
-    valid_dataset = DASegmentationDataset(
-                        image_A_valid_pathes, label_A_valid_pathes,
-                        image_B_valid_pathes, label_B_valid_pathes,
+    test_dataset = DASegmentationDataset(
+                        image_A_test_pathes, label_A_test_pathes,
+                        image_B_test_pathes, label_B_test_pathes,
                         mean_A=settings.mean_A, std_A=settings.std_A,
                         mean_B=settings.mean_B, std_B=settings.std_B,
-                        class_num=settings.class_num, augmentation=valid_aug,
+                        class_num=settings.class_num, augmentation=test_aug,
                         label_type=settings.label_type, color_palette=settings.color_palette
                         )
 
-    valid_loader = DataLoader(valid_dataset, batch_size=1, \
+    test_loader = DataLoader(test_dataset, batch_size=1, \
                             shuffle=False, num_workers=0)
 
     # segmentation_model definition
@@ -83,8 +83,8 @@ if __name__ == '__main__':
     )
 
     # evaluate
-    logs_A = test_epoch_A.run(valid_loader)
-    logs_B = test_epoch_B.run(valid_loader)
+    logs_A = test_epoch_A.run(test_loader)
+    logs_B = test_epoch_B.run(test_loader)
 
     for logs, modality, test_epoch in zip([logs_A, logs_B], ['A', 'B'], [test_epoch_A, test_epoch_B]):
         json_path = os.path.join(settings.save_dir, 'results_{}.json'.format(modality))

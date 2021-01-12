@@ -50,6 +50,11 @@ label_A_valid_path = config.get('label_A_valid')
 image_B_valid_path = config.get('image_B_valid')
 label_B_valid_path = config.get('label_B_valid')
 
+image_A_test_path = config.get('image_A_test')
+label_A_test_path = config.get('label_A_test')
+image_B_test_path = config.get('image_B_test')
+label_B_test_path = config.get('label_B_test')
+
 mean_A, std_A = utils.get_normParam(config.get('MR_mean'), config.get('MR_std'))
 mean_B, std_B = utils.get_normParam(config.get('CT_mean'), config.get('CT_std'))
 class_num = int(config.get('class_num'))

@@ -24,17 +24,17 @@ if __name__ == '__main__':
     DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
-    valid_image_pathes = utils.get_pathes(settings.valid_image_path)
-    valid_label_pathes = utils.get_pathes(settings.valid_label_path)
+    test_image_pathes = utils.get_pathes(settings.test_image_path)
+    test_label_pathes = utils.get_pathes(settings.test_label_path)
 
-    valid_aug = aug.get_transforms(settings.aug_settings_path, train=False)
+    test_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
-    valid_dataset = SegmentationDataset(valid_image_pathes, valid_label_pathes,
+    test_dataset = SegmentationDataset(test_image_pathes, test_label_pathes,
                         class_num=settings.class_num, mean=settings.mean, std=settings.std,
                         label_type=settings.label_type, color_palette=settings.color_palette,
-                        augmentation=valid_aug)
+                        augmentation=test_aug)
 
-    valid_loader = DataLoader(valid_dataset, batch_size=1, shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
     # model definition
     print('model : ', settings.model)
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     )
 
     # evaluate
-    logs = test_epoch.run(valid_loader)
+    logs = test_epoch.run(test_loader)
 
     json_path = os.path.join(settings.save_dir, 'results.json')
     with open(json_path, 'w') as f:

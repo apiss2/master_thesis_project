@@ -69,15 +69,17 @@ if __name__ == '__main__':
 
     test_epoch_A = TestEpoch(
         model=model, loss=loss, metrics=metrics, device=DEVICE,
-        target_modality='A',
+        target_modality='A', save_path=save_path,
         label_type=settings.label_type, color_palette=settings.color_palette,
-        save_path=save_path, mean=settings.mean_A, std=settings.std_A
+        mean_A=settings.mean_A, std_A=settings.std_A,
+        mean_B=settings.mean_B, std_B=settings.std_B
     )
     test_epoch_B = TestEpoch(
         model=model, loss=loss, metrics=metrics, device=DEVICE,
-        target_modality='B',
+        target_modality='B', save_path=save_path,
         label_type=settings.label_type, color_palette=settings.color_palette,
-        save_path=save_path, mean=settings.mean_A, std=settings.std_A
+        mean_A=settings.mean_A, std_A=settings.std_A,
+        mean_B=settings.mean_B, std_B=settings.std_B
     )
 
     # evaluate

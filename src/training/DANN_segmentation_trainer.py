@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-from .train_util import GANEpoch, Tester
+from .train_util import GANEpoch, Tester, UnNormalize
 
 class TrainEpoch(GANEpoch):
     def __init__(self, model, loss, metrics:list, optimizer,

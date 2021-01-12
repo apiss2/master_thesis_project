@@ -4,8 +4,7 @@ import torch
 from tqdm import tqdm as tqdm
 
 from ..utils.meter import AverageValueMeter
-from .train_util import GANEpoch, Tester
-from ..transformation.UnNormalize import UnNormalize
+from .train_util import GANEpoch, Tester, UnNormalize
 
 
 class TrainEpoch(GANEpoch):

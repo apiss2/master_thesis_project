@@ -26,10 +26,20 @@ class TrainEpoch(GANEpoch):
         self.geometric_transform = geometric_transform
         self.segmentation_metrics = [metric.to(self.device) for metric in segmentation_metrics] if segmentation_metrics is not None else None
 
+    def reset_meters(self):
+        self.loss_meters = {self.loss.__name__: AverageValueMeter()}
+        self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
+        self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
+        self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
+        if self.segmentation_metrics is not None:
+            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.segmentation_metrics})
+
     def on_epoch_start(self):
         self.iter = 0
-        self.model.train()
-        self.model_D.train()
+        self.set_requires_grad(self.model, requires_grad=False)
+        self.model.eval()
+        self.set_requires_grad(self.model_D, requires_grad=False)
+        self.model_D.eval()
 
     def batch_update(self, batch):
         self.iter += 1
@@ -41,11 +51,16 @@ class TrainEpoch(GANEpoch):
             tgt_x = self.geometric_transform(x, theta)
             ### update discriminator ###
             self.model.eval()
-            if self.iter%self.modelupdate_freq==0:
+            self.set_requires_grad(self.model, requires_grad=False)
+            self.model_D.eval()
+            self.set_requires_grad(self.model_D, requires_grad=False)
+            if self.iter % self.modelupdate_freq == 0:
                 self.model.FeatureExtraction.train()
+                self.set_requires_grad(self.model.FeatureExtraction, requires_grad=True)
                 self.optimizer.zero_grad()
             if self.iter%self.discupdate_freq==0:
                 self.model_D.train()
+                self.set_requires_grad(self.model_D, requires_grad=True)
                 self.optimizer_D.zero_grad()
             # predict
             features = self.model.FeatureExtraction.forward(x)[-1]
@@ -53,15 +68,17 @@ class TrainEpoch(GANEpoch):
             loss, _ = self.update_loss(y_D, pred_D, self.loss_D)
             # backward
             loss.backward()
-            if self.iter%self.modelupdate_freq==0:
+            if self.iter % self.modelupdate_freq == 0:
                 self.optimizer.step()
-            if self.iter%self.discupdate_freq==0:
+            if self.iter % self.discupdate_freq == 0:
                 self.optimizer_D.step()
-            self.update_metrics(y_D, pred_D, self.metrics_D)
+                self.update_metrics(y_D, pred_D, self.metrics_D)
 
             ### update generator ###
             self.model.train()
+            self.set_requires_grad(self.model, requires_grad=True)
             self.model_D.eval()
+            self.set_requires_grad(self.model_D, requires_grad=False)
             self.optimizer.zero_grad()
             # predict
             pred_theta = self.model.forward(x, tgt_x)
@@ -72,7 +89,7 @@ class TrainEpoch(GANEpoch):
             self.update_metrics(theta, pred_theta, self.metrics)
 
             if self.segmentation_metrics is not None:
-                src_label = y
+                src_label = y.float()
                 # Create pseudo-labels by randomly deforming the image
                 tgt_label = self.geometric_transform(src_label, theta)
                 # Trim the center of the original image
@@ -92,6 +109,14 @@ class ValidEpoch(GANEpoch):
         )
         self.geometric_transform = geometric_transform
         self.segmentation_metrics = [metric.to(self.device) for metric in segmentation_metrics] if segmentation_metrics is not None else None
+
+    def reset_meters(self):
+        self.loss_meters = {self.loss.__name__: AverageValueMeter()}
+        self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
+        self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
+        self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
+        if self.segmentation_metrics is not None:
+            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.segmentation_metrics})
 
     def on_epoch_start(self):
         self.model.eval()
@@ -120,7 +145,7 @@ class ValidEpoch(GANEpoch):
                 self.update_metrics(theta, pred_theta, self.metrics)
 
             if self.segmentation_metrics is not None:
-                src_label = y
+                src_label = y.float()
                 # Create pseudo-labels by randomly deforming the image
                 tgt_label = self.geometric_transform(src_label, theta)
                 # Trim the center of the original image

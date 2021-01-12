@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torchvision import models
 from torch.autograd import Function
 
-from .layers import ConvBNReLU, InvertedResidual, _make_divisible
+from .layers import ConvBNReLU, InvertedResidual, _make_divisible, GlobalAveragePooling2D
 
 class GradientReversalFunction(Function):
     @staticmethod
@@ -45,13 +45,15 @@ class Discriminator(nn.Module):
             ch_in = ch_out
         #nn_modules.append(nn.MaxPool2d(kernel_size=2, stride=2))
         self.conv = nn.Sequential(*nn_modules)
+        #self.GAP = GlobalAveragePooling2D()
 
         with torch.no_grad():
             sample = self.conv(input_sample)
         size = sample.size()
         ch, w, h = size[1], size[2], size[3]
         self.fc = nn.Sequential(
-            nn.Linear(int(ch*w*h), 1),
+            #nn.Linear(int(ch*w*h), 1),
+            nn.Linear(hidden_channels[-1], 1),
             #nn.BatchNorm1d(1),
             #nn.LeakyReLU(0.2, inplace=True),
             #nn.Linear(16, 1),
@@ -62,7 +64,9 @@ class Discriminator(nn.Module):
     def forward(self, x):
         x = self.conv(x)
         #x = torch.flatten(x, start_dim=1)
-        x = x.view(x.shape[0], -1)
+        #x = x.view(x.shape[0], -1)
+        #x = self.GAP(x)
+        x = torch.mean(x, dim=[2,3])
         x = self.fc(x)
         return x
 

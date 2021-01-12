@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 
 def _make_divisible(v, divisor, min_value=None):
@@ -18,6 +19,7 @@ def _make_divisible(v, divisor, min_value=None):
     if new_v < 0.9 * v:
         new_v += divisor
     return new_v
+
 
 class ConvBNReLU(nn.Sequential):
     def __init__(self, in_planes, out_planes, kernel_size=3, stride=1, groups=1, norm_layer=None):
@@ -61,3 +63,12 @@ class InvertedResidual(nn.Module):
             return x + self.conv(x)
         else:
             return self.conv(x)
+
+
+class GlobalAveragePooling2D(nn.Module):
+    def __init__(self):
+        super(GlobalAveragePooling2D, self).__init__()
+
+    def forward(self, x):
+        x = torch.mean(x, dim=[2,3]).unsqueeze(-1)
+        return x

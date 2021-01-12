@@ -28,9 +28,10 @@ class GradientReversal(torch.nn.Module):
         return GradientReversalFunction.apply(x, self.lambda_)
 
 class Discriminator(nn.Module):
-    def __init__(self, input_sample, hidden_channels):
+    def __init__(self, input_sample, hidden_channels, use_GAP=False):
         super(Discriminator, self).__init__()
-        assert type(hidden_channels)==list, 'Type of hidden_channels must be list.'
+        assert type(hidden_channels) == list, 'Type of hidden_channels must be list.'
+        self.use_GAP = use_GAP
 
         size = input_sample.size()
         ch_in, w, h = size[1], size[2], size[3]
@@ -47,26 +48,24 @@ class Discriminator(nn.Module):
         self.conv = nn.Sequential(*nn_modules)
         #self.GAP = GlobalAveragePooling2D()
 
-        with torch.no_grad():
-            sample = self.conv(input_sample)
-        size = sample.size()
-        ch, w, h = size[1], size[2], size[3]
-        self.fc = nn.Sequential(
-            #nn.Linear(int(ch*w*h), 1),
-            nn.Linear(hidden_channels[-1], 1),
-            #nn.BatchNorm1d(1),
-            #nn.LeakyReLU(0.2, inplace=True),
-            #nn.Linear(16, 1),
-            #nn.BatchNorm1d(1),
-            nn.Sigmoid(),
-        )
+        nn_modules = list()
+        if use_GAP:
+            nn_modules.append(nn.Linear(hidden_channels[-1], 1))
+        else:
+            with torch.no_grad():
+                sample = self.conv(input_sample)
+            size = sample.size()
+            ch, w, h = size[1], size[2], size[3]
+            nn_modules.append(nn.Linear(int(ch*w*h), 1))
+        nn_modules.append(nn.Sigmoid())
+        self.fc = nn.Sequential(*nn_modules)
 
     def forward(self, x):
         x = self.conv(x)
-        #x = torch.flatten(x, start_dim=1)
-        #x = x.view(x.shape[0], -1)
-        #x = self.GAP(x)
-        x = torch.mean(x, dim=[2,3])
+        if self.use_GAP:
+            x = torch.mean(x, dim=[2,3])
+        else:
+            x = x.view(x.shape[0], -1)
         x = self.fc(x)
         return x
 

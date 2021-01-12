@@ -35,11 +35,19 @@
         {
             "transform":"affine",
             "params":{
-                "scale":0.1,
+                "scale":0.01,
                 "rotate":5,
-                "shift":0.05,
+                "shift":0.02,
                 "border_mode":4,
                 "probability":1
+            }
+        },
+        {
+            "transform":"blur",
+            "params":{
+                "type":"blur",
+                "probability":0.5,
+                "blur_limit": [3, 7]
             }
         },
         {
@@ -47,15 +55,6 @@
             "params":{
                 "type":"AdditiveGaussianNoise",
                 "probability":0.5
-            }
-        },
-        {
-            "transform":"distortion",
-            "params":{
-                "type":"grid",
-                "probability":0.5,
-                "border_mode":4,
-                "num_steps":5
             }
         },
         {

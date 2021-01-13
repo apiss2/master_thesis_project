@@ -53,8 +53,8 @@ if __name__ == '__main__':
     model.load_state_dict(torch.load(settings.model_save_path))
 
     # loss function
-    print('loss_seg : ', settings.loss_seg)
-    loss = opt_util.get_loss(settings.loss_seg, settings.class_weight)
+    print('loss : ', settings.loss)
+    loss = opt_util.get_loss(settings.loss, settings.class_weight)
 
     # metric function
     print('metrics_test : ', settings.metrics_test)

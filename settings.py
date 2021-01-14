@@ -19,8 +19,9 @@ experiment_name = args.config_type
 config = config_ini[experiment_name]
 
 # make dir
+save_root = config.get('save_root')
 task_name = config.get('task_name')
-save_dir = os.path.join('D:/result/', task_name, experiment_name)
+save_dir = os.path.join(save_root, task_name, experiment_name)
 os.makedirs(save_dir, exist_ok=True)
 
 ############ settings ############
@@ -38,32 +39,35 @@ modelupdate_freq = config.getint('modelupdate_freq')
 discupdate_freq = config.getint('discupdate_freq')
 
 ### image path ###
-# train
-train_image_path = config.get('train_image_path')
-train_label_path = config.get('train_label_path')
+dataset_base_path = config.get('dataset_base_path')
+assert dataset_base_path is not None, 'No dataset_base_path'
 
-image_A_train_path = config.get('image_A_train')
-label_A_train_path = config.get('label_A_train')
-image_B_train_path = config.get('image_B_train')
-label_B_train_path = config.get('label_B_train')
+# train
+train_image_path = utils.get_path(dataset_base_path, config.get('train_image_path'))
+train_label_path = utils.get_path(dataset_base_path, config.get('train_label_path'))
+
+image_A_train_path = utils.get_path(dataset_base_path, config.get('image_A_train'))
+label_A_train_path = utils.get_path(dataset_base_path, config.get('label_A_train'))
+image_B_train_path = utils.get_path(dataset_base_path, config.get('image_B_train'))
+label_B_train_path = utils.get_path(dataset_base_path, config.get('label_B_train'))
 
 # valid
-valid_image_path = config.get('valid_image_path')
-valid_label_path = config.get('valid_label_path')
+valid_image_path = utils.get_path(dataset_base_path, config.get('valid_image_path'))
+valid_label_path = utils.get_path(dataset_base_path, config.get('valid_label_path'))
 
-image_A_valid_path = config.get('image_A_valid')
-label_A_valid_path = config.get('label_A_valid')
-image_B_valid_path = config.get('image_B_valid')
-label_B_valid_path = config.get('label_B_valid')
+image_A_valid_path = utils.get_path(dataset_base_path, config.get('image_A_valid'))
+label_A_valid_path = utils.get_path(dataset_base_path, config.get('label_A_valid'))
+image_B_valid_path = utils.get_path(dataset_base_path, config.get('image_B_valid'))
+label_B_valid_path = utils.get_path(dataset_base_path, config.get('label_B_valid'))
 
 # test
-test_image_path = config.get('test_image_path')
-test_label_path = config.get('test_label_path')
+test_image_path = utils.get_path(dataset_base_path, config.get('test_image_path'))
+test_label_path = utils.get_path(dataset_base_path, config.get('test_label_path'))
 
-image_A_test_path = config.get('image_A_test')
-label_A_test_path = config.get('label_A_test')
-image_B_test_path = config.get('image_B_test')
-label_B_test_path = config.get('label_B_test')
+image_A_test_path = utils.get_path(dataset_base_path, config.get('image_A_test'))
+label_A_test_path = utils.get_path(dataset_base_path, config.get('label_A_test'))
+image_B_test_path = utils.get_path(dataset_base_path, config.get('image_B_test'))
+label_B_test_path = utils.get_path(dataset_base_path, config.get('label_B_test'))
 
 # dataset
 mean, std = utils.get_normParam(config.get('mean'), config.get('std'))

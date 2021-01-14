@@ -29,6 +29,7 @@ class UnNormalize(object):
 
 
 class Epoch:
+    """This is the code written with reference to https://github.com/qubvel/segmentation_models.pytorch"""
     def __init__(self, model, loss, metrics:list,
             stage_name:str='train', device:str='cpu'):
         self.model = model

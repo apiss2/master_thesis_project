@@ -11,7 +11,7 @@ import segmentation_models_pytorch as smp
 from .cnngeometric_base import FeatureExtraction, FeatureCorrelation, FeatureRegression
 
 class CNNGeometric(nn.Module):
-    # 入力は240*240のみを想定
+    """This is the code written with reference to https://github.com/ignacio-rocco/cnngeometric_pytorch"""
     def __init__(self, encoder='resnet50',
                  in_channels=3, depth=5, weights=None,
                  output_dim=6, input_size=256,

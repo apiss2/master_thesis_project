@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torchvision import models
 from torch.autograd import Function
 
-from .layers import ConvBNReLU, InvertedResidual, _make_divisible, GlobalAveragePooling2D
+from .layers import ConvBNReLU, InvertedResidual, _make_divisible
+from .layers import GlobalAveragePooling2D, Flatten
 
 class GradientReversalFunction(Function):
     @staticmethod
@@ -28,7 +29,8 @@ class GradientReversal(torch.nn.Module):
         return GradientReversalFunction.apply(x, self.lambda_)
 
 class Discriminator(nn.Module):
-    def __init__(self, input_sample, hidden_channels, use_GAP=False):
+    def __init__(self, input_sample, hidden_channels, \
+                 gradient_reversal=False, use_GAP=False):
         super(Discriminator, self).__init__()
         assert type(hidden_channels) == list, 'Type of hidden_channels must be list.'
         self.use_GAP = use_GAP
@@ -37,21 +39,21 @@ class Discriminator(nn.Module):
         ch_in, w, h = size[1], size[2], size[3]
         assert w==h, 'The width and height must match.'
 
-        nn_modules = [GradientReversal()]
+        nn_modules = [GradientReversal()] if gradient_reversal else list()
         for i, ch_out in enumerate(hidden_channels):
             s = 2 if i%3==1 else 1
             nn_modules.append(nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=s, padding=0))
-            nn_modules.append(nn.LeakyReLU(0.2, inplace=True))
             nn_modules.append(nn.BatchNorm2d(ch_out))
+            nn_modules.append(nn.LeakyReLU(0.2, inplace=True))
             ch_in = ch_out
-        #nn_modules.append(nn.MaxPool2d(kernel_size=2, stride=2))
         self.conv = nn.Sequential(*nn_modules)
-        #self.GAP = GlobalAveragePooling2D()
 
         nn_modules = list()
         if use_GAP:
+            nn_modules.append(GlobalAveragePooling2D())
             nn_modules.append(nn.Linear(hidden_channels[-1], 1))
         else:
+            nn_modules.append(Flatten())
             with torch.no_grad():
                 sample = self.conv(input_sample)
             size = sample.size()
@@ -62,10 +64,6 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        if self.use_GAP:
-            x = torch.mean(x, dim=[2,3])
-        else:
-            x = x.view(x.shape[0], -1)
         x = self.fc(x)
         return x
 

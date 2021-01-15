@@ -19,6 +19,11 @@ def init_logging(save_dir):
     valid_logger.addHandler(valid_handler)
     return train_logger, valid_logger
 
+def get_path(root_path, path):
+    if path is None:
+        return None
+    return os.path.join(root_path, path)
+
 def get_pathes(path, extension=None):
     if path is None:
         return None

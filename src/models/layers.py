@@ -70,7 +70,7 @@ class GlobalAveragePooling2D(nn.Module):
         super(GlobalAveragePooling2D, self).__init__()
 
     def forward(self, x):
-        x = torch.mean(x, dim=[2,3]).unsqueeze(-1)
+        x = torch.mean(x, dim=[2,3])#.unsqueeze(-1)
         return x
 
 class Flatten(nn.Module):

@@ -76,7 +76,8 @@ mean_B, std_B = utils.get_normParam(config.get('CT_mean'), config.get('CT_std'))
 
 class_num = config.getint('class_num')
 label_type = config.get('label_type')
-color_palette = utils.get_colorPalette(config.get('color_palette'))
+color_palette_path = utils.get_path(dataset_base_path, config.get('color_palette'))
+color_palette = utils.get_colorPalette(color_palette_path)
 
 aug_settings_path = config.get('augmentation_setting_json')
 image_size = aug.get_transformedImageSize(aug_settings_path)
@@ -105,7 +106,8 @@ if config.get('discriminator_channels') is not None:
 # loss func
 loss = config.get('loss')
 loss_D = config.get('loss_D')
-class_weight = utils.get_classWeight(config.get('class_weight'))
+class_weight_path = utils.get_path(dataset_base_path, config.get('class_weight'))
+class_weight = utils.get_classWeight(class_weight_path)
 
 # metrics
 metrics = config.get('metrics').split('-')
@@ -116,6 +118,8 @@ metrics_test = config.get('metrics_test').split('-') if config.get('metrics_test
 # optimizer
 optimizer = config.get('optimizer')
 lr = config.getfloat('lr')
+optimizer_D = config.get('optimizer_D')
+lr_D = config.getfloat('lr_D')
 
 # scheduler
 scheduler_type = config.get('scheduler_type')
@@ -127,10 +131,10 @@ eta_min = config.getfloat('eta_min')
 
 ### save settings ###
 shutil.copy(args.config, os.path.join(save_dir, os.path.basename(args.config)))
-if config.get('color_palette') is not None:
-    shutil.copy(config.get('color_palette'), os.path.join(save_dir, os.path.basename(config.get('color_palette'))))
-if config.get('class_weight') is not None:
-    shutil.copy(config.get('class_weight'), os.path.join(save_dir, os.path.basename(config.get('class_weight'))))
+if color_palette_path is not None:
+    shutil.copy(color_palette_path, os.path.join(save_dir, os.path.basename(color_palette_path)))
+if class_weight_path is not None:
+    shutil.copy(class_weight_path, os.path.join(save_dir, os.path.basename(class_weight_path)))
 if aug_settings_path is not None:
     shutil.copy(aug_settings_path, os.path.join(save_dir, os.path.basename(aug_settings_path)))
 

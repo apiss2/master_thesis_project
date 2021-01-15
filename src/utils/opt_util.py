@@ -7,7 +7,7 @@ from warmup_scheduler import GradualWarmupScheduler
 from ..loss.BCEloss import BCELoss, BCEWithLogitsLoss
 from ..loss.CrossEntropy import (CE_Dice_Loss, CrossEntropyLoss,
                                  CrossEntropyLoss2d, CrossEntropyWithDiceLoss)
-from ..loss.DistanceLoss import MAE, MSE
+from ..loss.DistanceLoss import MAE, MSE, WassersteinLoss
 from ..loss.gridloss import GridMetric, TransformedGridLoss
 
 
@@ -37,6 +37,8 @@ def get_loss(name:str, class_weight:list=None, **kwargs):
         loss = CrossEntropyWithDiceLoss(weight=class_weight, **kwargs)
     elif name.lower() == 'grid':
         loss = TransformedGridLoss(**kwargs)
+    elif name.lower() == 'wasserstein':
+        loss = WassersteinLoss()
     else:
         assert False, 'Unexpected loss name: {}'.format(name)
     return loss
@@ -55,6 +57,8 @@ def get_metric(name:str, **kwargs):
         metric = smp.utils.metrics.Fscore(**kwargs)
     elif name.lower() == 'grid':
         metric = GridMetric(**kwargs)
+    elif name.lower() == 'wasserstein':
+        loss = WassersteinMetric()
     else:
         assert False, 'Unexpected metric name: {}'.format(name)
     return metric

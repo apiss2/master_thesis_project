@@ -8,11 +8,11 @@ from .train_util import GANEpoch, Tester, UnNormalize
 
 
 class TrainEpoch(GANEpoch):
-    def __init__(self, model, loss, metrics:list, optimizer, \
-                    model_D, loss_D, metrics_D:list, optimizer_D,
-                    modelupdate_freq:int=10, discupdate_freq:int=5,
+    def __init__(self, model, loss, metrics: list, optimizer, \
+                    model_D, loss_D, metrics_D: list, optimizer_D,
+                    modelupdate_freq: int = 10, discupdate_freq: int = 5,
                     geometric_transform=None,
-                    segmentation_metrics:list=None, device='cpu'):
+                    segmentation_metrics: list = None, device='cpu'):
         super().__init__(
             model=model, loss=loss, metrics=metrics,
             model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
@@ -99,9 +99,10 @@ class TrainEpoch(GANEpoch):
 
 
 class ValidEpoch(GANEpoch):
-    def __init__(self, model, loss, metrics:list, \
-                    model_D, loss_D, metrics_D:list,
-                geometric_transform, segmentation_metrics:list=None, device='cpu'):
+    def __init__(self, model, loss, metrics: list, \
+                model_D, loss_D, metrics_D: list,
+                geometric_transform, segmentation_metrics: list = None,
+                device='cpu'):
         super().__init__(
             model=model, loss=loss, metrics=metrics,
             model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,

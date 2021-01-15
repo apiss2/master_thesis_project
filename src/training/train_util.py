@@ -105,6 +105,7 @@ class Epoch:
 
         return self.logs
 
+
 class GANEpoch(Epoch):
     def __init__(self, model, loss, metrics:list,
                     model_D, loss_D, metrics_D:list,
@@ -129,6 +130,35 @@ class GANEpoch(Epoch):
 
         self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
         self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
+
+
+class WDGR_Epoch(Epoch):
+    def __init__(self, model, loss, metrics:list,
+                    decoder_1, decoder_2, loss_D, metrics_D:list,
+                    device:str='cpu', stage_name='train'):
+        super().__init__(
+            model=model, loss=loss, metrics=metrics,
+            stage_name=stage_name, device=device,
+        )
+        self.decoder_1 = decoder_1
+        self.decoder_2 = decoder_2
+        self.loss_D = loss_D
+        self.metrics_D = metrics_D
+        self._to_device_D()
+
+    def _to_device_D(self):
+        self.decoder_1 = self.decoder_1.to(self.device)
+        self.decoder_2 = self.decoder_2.to(self.device)
+        self.loss_D = self.loss_D.to(self.device)
+        self.metrics_D = [metric.to(self.device) for metric in self.metrics_D]
+
+    def reset_meters(self):
+        self.loss_meters = {self.loss.__name__: AverageValueMeter()}
+        self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
+
+        self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
+        self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
+
 
 class Tester(Epoch):
     def __init__(self, model, loss, metrics:list, device:str='cpu',

@@ -7,7 +7,7 @@ from warmup_scheduler import GradualWarmupScheduler
 from ..loss.BCEloss import BCELoss, BCEWithLogitsLoss
 from ..loss.CrossEntropy import (CE_Dice_Loss, CrossEntropyLoss,
                                  CrossEntropyLoss2d, CrossEntropyWithDiceLoss)
-from ..loss.DistanceLoss import MAE, MSE, WassersteinLoss
+from ..loss.DistanceLoss import MAE, MSE, WassersteinLoss, WassersteinMetric
 from ..loss.gridloss import GridMetric, TransformedGridLoss
 
 

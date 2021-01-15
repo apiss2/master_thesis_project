@@ -50,7 +50,7 @@ if __name__ == '__main__':
                         depth=settings.depth, weights=settings.weights,
                         output_dim=settings.cnn_output_dim,
                         input_size=settings.image_size,
-                        freeze_FeatureExtractionModel=settings.freeze)
+                        freeze_encoder=settings.freeze_encoder)
     model.load_state_dict(torch.load(settings.model_save_path))
 
     if settings.pretrained_model_path is not None:

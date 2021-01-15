@@ -96,7 +96,7 @@ depth = config.getint('depth')
 weights = config.get('weights')
 activation = config.get('activation')
 
-freeze = config.getboolean('freeze_FeatureExtractionModel')
+freeze_encoder = config.getboolean('freeze_encoder')
 pretrained_model_path = config.get('pretrained_model_path')
 padding_mode = config.get('padding_mode')
 

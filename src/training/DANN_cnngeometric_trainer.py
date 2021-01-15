@@ -55,15 +55,15 @@ class TrainEpoch(GANEpoch):
             self.model_D.eval()
             self.set_requires_grad(self.model_D, requires_grad=False)
             if self.iter % self.modelupdate_freq == 0:
-                self.model.FeatureExtraction.train()
-                self.set_requires_grad(self.model.FeatureExtraction, requires_grad=True)
+                self.model.encoder.train()
+                self.set_requires_grad(self.model.encoder, requires_grad=True)
                 self.optimizer.zero_grad()
             if self.iter%self.discupdate_freq==0:
                 self.model_D.train()
                 self.set_requires_grad(self.model_D, requires_grad=True)
                 self.optimizer_D.zero_grad()
             # predict
-            features = self.model.FeatureExtraction.forward(x)[-1]
+            features = self.model.encoder.forward(x)[-1]
             pred_D = self.model_D.forward(features).squeeze()
             loss, _ = self.update_loss(y_D, pred_D, self.loss_D)
             # backward
@@ -131,7 +131,7 @@ class ValidEpoch(GANEpoch):
             with torch.no_grad():
                 ### update discriminator ###
                 # predict
-                features = self.model.FeatureExtraction.forward(x)[-1]
+                features = self.model.encoder.forward(x)[-1]
                 pred_D = self.model_D.forward(features).squeeze()
                 # logging
                 self.update_loss(y_D, pred_D, self.loss_D)

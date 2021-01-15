@@ -56,7 +56,7 @@ if __name__ == '__main__':
     model = CNNGeometric(encoder=settings.encoder, in_channels=settings.in_channels,
                         depth=settings.depth, weights=settings.weights,
                         output_dim=settings.cnn_output_dim, input_size=settings.image_size,
-                        freeze_FeatureExtractionModel=settings.freeze)
+                        freeze_encoder=settings.freeze_encoder)
 
     if settings.pretrained_model_path is not None:
         model.load_state_dict(torch.load(settings.pretrained_model_path))

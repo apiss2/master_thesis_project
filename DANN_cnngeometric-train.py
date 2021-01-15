@@ -68,7 +68,7 @@ if __name__ == '__main__':
                         depth=settings.depth, weights=settings.weights,
                         output_dim=settings.cnn_output_dim,
                         input_size=settings.image_size,
-                        freeze_FeatureExtractionModel=settings.freeze)
+                        freeze_encoder=settings.freeze_encoder)
 
     if settings.pretrained_model_path is not None:
         model.load_state_dict(torch.load(settings.pretrained_model_path))
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     # discriminator definition
     with torch.no_grad():
         sample = torch.rand((2, 3, settings.image_size, settings.image_size))
-        sample = model.FeatureExtraction.forward(sample)[-1]
+        sample = model.encoder.forward(sample)[-1]
     model_D = Discriminator(sample, settings.discriminator_channels, use_GAP=False)
 
     # loss function

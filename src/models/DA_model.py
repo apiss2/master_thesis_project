@@ -29,7 +29,7 @@ class GradientReversal(torch.nn.Module):
         return GradientReversalFunction.apply(x, self.lambda_)
 
 class Discriminator(nn.Module):
-    def __init__(self, input_sample, hidden_channels, \
+    def __init__(self, input_sample, hidden_channels, batchnorm=True,\
                  gradient_reversal=False, use_GAP=False):
         super(Discriminator, self).__init__()
         assert type(hidden_channels) == list, 'Type of hidden_channels must be list.'
@@ -43,7 +43,8 @@ class Discriminator(nn.Module):
         for i, ch_out in enumerate(hidden_channels):
             s = 2 if i%3==1 else 1
             nn_modules.append(nn.Conv2d(ch_in, ch_out, kernel_size=3, stride=s, padding=0))
-            nn_modules.append(nn.BatchNorm2d(ch_out))
+            if batchnorm:
+                nn_modules.append(nn.BatchNorm2d(ch_out))
             nn_modules.append(nn.LeakyReLU(0.2, inplace=True))
             ch_in = ch_out
         self.conv = nn.Sequential(*nn_modules)

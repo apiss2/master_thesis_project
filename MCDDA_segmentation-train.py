@@ -5,7 +5,6 @@ warnings.simplefilter('ignore')
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler as lrs
-from segmentation_models_pytorch.encoders import get_encoder
 
 # model
 from src.models.DA_model import Discriminator
@@ -64,12 +63,13 @@ if __name__ == '__main__':
     # segmentation_model definition
     print('model : ', settings.model)
     print('encoder : ', settings.encoder)
-    model = get_encoder(name=settings.encoder, depth=settings.depth, weights=settings.weights)
+    model = seg.SegmentationEncoder(encoder_name=settings.encoder, model_name=settings.model,
+        depth=settings.depth, weights=settings.weights)
     with torch.no_grad():
         sample = model.forward(torch.rand((2, 3, settings.image_size, settings.image_size)))
-    decoder_1 = seg.SegmentationDecoder(settings.model, sample,
+    decoder_1 = seg.SegmentationDecoder(settings.model, sample, depth=settings.depth,
         activation=settings.activation, classes=settings.class_num)
-    decoder_2 = seg.SegmentationDecoder(settings.model, sample,
+    decoder_2 = seg.SegmentationDecoder(settings.model, sample, depth=settings.depth,
         activation=settings.activation, classes=settings.class_num)
 
     # discriminator definition

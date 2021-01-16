@@ -67,6 +67,8 @@ def get_metric(name:str, **kwargs):
         metric = GradientPenalty2D()
     elif name.lower() == 'symkl2d':
         metric = Symkl2d()
+    elif name.lower() == 'diff2d':
+        metric = Diff2d()
     else:
         assert False, 'Unexpected metric name: {}'.format(name)
     return metric

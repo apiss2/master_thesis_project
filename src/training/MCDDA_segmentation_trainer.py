@@ -43,18 +43,15 @@ class TrainEpoch(WDGREpoch):
         self.optimizer.zero_grad()
         self.optimizer_1.zero_grad()
         self.optimizer_2.zero_grad()
-        loss = 0
-        for x, y in zip([x_A, x_B], [y_A, y_B]):
-            features = self.model.forward(x)
-            pred_1 = self.decoder_1.forward(features)
-            pred_2 = self.decoder_2.forward(features)
-            # loss
-            loss_tmp, _ = self.update_loss(y, pred_1, self.loss)
-            loss += loss_tmp*0.25
-            loss_tmp, _ = self.update_loss(y, pred_2, self.loss)
-            loss += loss_tmp*0.25
-            self.update_metrics(y, pred_1, self.metrics)
-            self.update_metrics(y, pred_2, self.metrics)
+        features = self.model.forward(x_A)
+        pred_1 = self.decoder_1.forward(features)
+        pred_2 = self.decoder_2.forward(features)
+        # loss
+        loss_tmp_1, _ = self.update_loss(y_A, pred_1, self.loss)
+        loss_tmp_2, _ = self.update_loss(y_A, pred_2, self.loss)
+        loss = loss_tmp_1 + loss_tmp_2
+        self.update_metrics(y_A, pred_1, self.metrics)
+        self.update_metrics(y_A, pred_2, self.metrics)
         # backward
         loss.backward()
         self.optimizer.step()
@@ -70,19 +67,21 @@ class TrainEpoch(WDGREpoch):
         self.set_requires_grad(self.decoder_2, requires_grad=True)
         self.optimizer_1.zero_grad()
         self.optimizer_2.zero_grad()
-        loss = 0
-        for x, y in zip([x_A, x_B], [y_A, y_B]):
-            features = self.model.forward(x)
-            pred_1 = self.decoder_1.forward(features)
-            pred_2 = self.decoder_2.forward(features)
-            # loss
-            loss_tmp_1, _ = self.update_loss(y, pred_1, self.loss)
-            loss_tmp_2, _ = self.update_loss(y, pred_2, self.loss)
-            loss_tmp, _ = self.update_loss(pred_1, pred_2, self.loss_D)
-            loss -= (loss_tmp_1 + loss_tmp_2) * 0.25 + loss_tmp * 0.5
-            self.update_metrics(y, pred_1, self.metrics)
-            self.update_metrics(y, pred_2, self.metrics)
-            self.update_metrics(pred_1, pred_2, self.metrics_D)
+        # src
+        features = self.model.forward(x_A)
+        pred_1 = self.decoder_1.forward(features)
+        pred_2 = self.decoder_2.forward(features)
+        loss_tmp_1, _ = self.update_loss(y_A, pred_1, self.loss)
+        loss_tmp_2, _ = self.update_loss(y_A, pred_2, self.loss)
+        self.update_metrics(y_A, pred_1, self.metrics)
+        self.update_metrics(y_A, pred_2, self.metrics)
+        # tgt
+        features = self.model.forward(x_B)
+        pred_1 = self.decoder_1.forward(features)
+        pred_2 = self.decoder_2.forward(features)
+        loss_tmp, _ = self.update_loss(pred_1, pred_2, self.loss_D)
+        loss = (loss_tmp_1 + loss_tmp_2)  - loss_tmp
+        self.update_metrics(pred_1, pred_2, self.metrics_D)
         # backward
         loss.backward()
         self.optimizer_1.step()
@@ -96,15 +95,12 @@ class TrainEpoch(WDGREpoch):
         self.set_requires_grad(self.decoder_1, requires_grad=False)
         self.set_requires_grad(self.decoder_2, requires_grad=False)
         self.optimizer.zero_grad()
-        loss = 0
-        for x in [x_A, x_B]:
-            # predict
-            features = self.model.forward(x)
-            pred_A = self.decoder_1.forward(features)
-            pred_B = self.decoder_2.forward(features)
-            loss_tmp, _ = self.update_loss(pred_A, pred_B, self.loss_D)
-            self.update_metrics(pred_A, pred_B, self.metrics_D)
-            loss += loss_tmp
+        # predict
+        features = self.model.forward(x_B)
+        pred_A = self.decoder_1.forward(features)
+        pred_B = self.decoder_2.forward(features)
+        loss, _ = self.update_loss(pred_A, pred_B, self.loss_D)
+        self.update_metrics(pred_A, pred_B, self.metrics_D)
         # backward
         loss.backward()
         self.optimizer.step()
@@ -137,8 +133,8 @@ class ValidEpoch(WDGREpoch):
                 pred_1 = self.decoder_1.forward(features)
                 pred_2 = self.decoder_2.forward(features)
                 # loss
-                self.update_loss(pred_1, y, self.loss)
-                self.update_loss(pred_2, y, self.loss)
+                self.update_loss(y, pred_1, self.loss)
+                self.update_loss(y, pred_2, self.loss)
                 self.update_loss(pred_1, pred_2, self.loss_D)
                 # metric
                 self.update_metrics(y, pred_1, self.metrics)

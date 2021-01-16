@@ -39,6 +39,7 @@ class GradientPenalty2D(nn.Module):
 
 
 class Diff2d(nn.Module):
+    __name__ = 'Diff2D'
     def __init__(self):
         super(Diff2d, self).__init__()
 
@@ -47,6 +48,7 @@ class Diff2d(nn.Module):
 
 
 class Symkl2d(nn.Module):
+    __name__ = 'Symkl2D'
     def __init__(self, size_average=True):
         super(Symkl2d, self).__init__()
         self.size_average = size_average

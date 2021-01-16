@@ -132,7 +132,7 @@ class GANEpoch(Epoch):
         self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
 
 
-class WDGR_Epoch(Epoch):
+class WDGREpoch(Epoch):
     def __init__(self, model, loss, metrics:list,
                     decoder_1, decoder_2, loss_D, metrics_D:list,
                     device:str='cpu', stage_name='train'):

@@ -1,13 +1,13 @@
+import segmentation_models_pytorch as smp
 import torch
 import torch.optim.lr_scheduler as lrs
-
-import segmentation_models_pytorch as smp
 from warmup_scheduler import GradualWarmupScheduler
 
 from ..loss.BCEloss import BCELoss, BCEWithLogitsLoss
 from ..loss.CrossEntropy import (CE_Dice_Loss, CrossEntropyLoss,
                                  CrossEntropyLoss2d, CrossEntropyWithDiceLoss)
-from ..loss.DistanceLoss import MAE, MSE, WassersteinGPLoss, WassersteinDistance, GradientPenalty2D
+from ..loss.DistanceLoss import (MAE, MSE, Diff2d, Symkl2d, GradientPenalty2D,
+                                 WassersteinDistance, WassersteinGPLoss)
 from ..loss.gridloss import GridMetric, TransformedGridLoss
 
 
@@ -39,6 +39,10 @@ def get_loss(name:str, class_weight:list=None, **kwargs):
         loss = TransformedGridLoss(**kwargs)
     elif name.lower() == 'wasserstein':
         loss = WassersteinGPLoss()
+    elif name.lower() == 'diff2d':
+        loss = Diff2d()
+    elif name.lower() == 'symkl2d':
+        loss = Symkl2d()
     else:
         assert False, 'Unexpected loss name: {}'.format(name)
     return loss
@@ -61,6 +65,8 @@ def get_metric(name:str, **kwargs):
         metric = WassersteinDistance()
     elif name.lower() == 'gradientpenalty':
         metric = GradientPenalty2D()
+    elif name.lower() == 'symkl2d':
+        metric = Symkl2d()
     else:
         assert False, 'Unexpected metric name: {}'.format(name)
     return metric

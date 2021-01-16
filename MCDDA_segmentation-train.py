@@ -5,6 +5,7 @@ warnings.simplefilter('ignore')
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import lr_scheduler as lrs
+from segmentation_models_pytorch.encoders import get_encoder
 
 # model
 from src.models.DA_model import Discriminator
@@ -14,7 +15,7 @@ from src.dataset.segmentation_dataset import DASegmentationDataset
 from src.dataset import albmentation_augmentation as aug
 # training
 from src.utils import opt_util
-from src.training.WDGR_segmentation_trainer import TrainEpoch, ValidEpoch
+from src.training.MCDDA_segmentation_trainer import TrainEpoch, ValidEpoch
 # utils
 from src.utils import utils
 import settings
@@ -63,19 +64,20 @@ if __name__ == '__main__':
     # segmentation_model definition
     print('model : ', settings.model)
     print('encoder : ', settings.encoder)
-    model = get_encoder(name, in_channels, depth, weights)
+    model = get_encoder(name=settings.encoder, depth=settings.depth, weights=settings.weights)
     with torch.no_grad():
         sample = model.forward(torch.rand((2, 3, settings.image_size, settings.image_size)))
     decoder_1 = seg.SegmentationDecoder(settings.model, sample,
-        activation=settings.activation, class_num=settings.class_num)
+        activation=settings.activation, classes=settings.class_num)
     decoder_2 = seg.SegmentationDecoder(settings.model, sample,
-        activation=settings.activation, class_num=settings.class_num)
+        activation=settings.activation, classes=settings.class_num)
 
     # discriminator definition
     with torch.no_grad():
         sample = torch.rand((2, 3, settings.image_size, settings.image_size))
-        sample = model.encoder.forward(sample)[-1]
-    model_D = Discriminator(sample, settings.discriminator_channels, gradient_reversal=False, use_GAP=True)
+        sample = model.forward(sample)[-1]
+    model_D = Discriminator(sample, settings.discriminator_channels,
+        batchnorm=True, gradient_reversal=False, use_GAP=True, last_activation='sigmoid')
 
     # loss function
     print('loss : ', settings.loss)
@@ -91,29 +93,33 @@ if __name__ == '__main__':
 
     # optimizer
     print('optimizer : ', settings.optimizer)
-    print('optimizer_d : ', settings.optimizer_D)
     optimizer = opt_util.get_optimizer(settings.optimizer, model.parameters(), settings.lr)
-    optimizer_D = opt_util.get_optimizer(settings.optimizer_D, model_D.parameters(), settings.lr)
+    optimizer_1 = opt_util.get_optimizer(settings.optimizer, decoder_1.parameters(), settings.lr)
+    optimizer_2 = opt_util.get_optimizer(settings.optimizer, decoder_2.parameters(), settings.lr)
 
     # scheduler
     print('scheduler : ', settings.scheduler_type)
     scheduler = opt_util.get_scheduler(settings.scheduler_type, optimizer, milestones=settings.decay_schedule, gamma=settings.gamma,
                                     T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
-    scheduler_D = opt_util.get_scheduler(settings.scheduler_type, optimizer_D, milestones=settings.decay_schedule, gamma=settings.gamma,
+    scheduler_1 = opt_util.get_scheduler(settings.scheduler_type, optimizer_1, milestones=settings.decay_schedule, gamma=settings.gamma,
+                                    T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
+    scheduler_2 = opt_util.get_scheduler(settings.scheduler_type, optimizer_2, milestones=settings.decay_schedule, gamma=settings.gamma,
                                     T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
 
     # trainner
     train_epoch = TrainEpoch(
         model=model, loss=loss, metrics=metrics, device=DEVICE,
-        model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
-        optimizer=optimizer, optimizer_D=optimizer_D,
+        loss_D=loss_D, metrics_D=metrics_D, optimizer=optimizer,
+        decoder_1=decoder_1, decoder_2=decoder_2,
+        optimizer_1=optimizer_1, optimizer_2=optimizer_2,
         modelupdate_freq=settings.modelupdate_freq,
         discupdate_freq=settings.discupdate_freq
     )
 
     valid_epoch = ValidEpoch(
         model=model, loss=loss, metrics=metrics,
-        model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
+        decoder_1=decoder_1, decoder_2=decoder_2,
+        loss_D=loss_D, metrics_D=metrics_D,
         device=DEVICE
     )
 
@@ -140,4 +146,5 @@ if __name__ == '__main__':
         valid_logger.info(valid_msg)
 
         scheduler.step()
-        scheduler_D.step()
+        scheduler_1.step()
+        scheduler_2.step()

@@ -51,25 +51,26 @@ class SegmentationDecoder(SegmentationModel):
     def __init__(self, model_name:str, input_sample, classes:int,
         activation:str=None, decoder_channels: List[int] = (256, 128, 64, 32, 16)
         ):
+        super(SegmentationDecoder, self).__init__()
         if model_name == 'DeepLabV3':
             decoder_channels = decoder_channels[0]
             self.decoder = DeepLabV3Decoder(
-                in_channels=input_sample.out_channels[-1],
-                out_channels=decoder_channels,
+                in_channels=input_sample[-1].size()[1],
+                out_channels=decoder_channels
             )
-            upsampling = 8
+            upsampling = 16
             kernel_size = 1
         elif model_name == 'DeepLabV3plus':
             decoder_channels = decoder_channels[0]
             self.decoder = DeepLabV3PlusDecoder(
-                encoder_channels=input_sample.out_channels,
+                encoder_channels=input_sample[-1].size()[1],
                 out_channels=decoder_channels
             )
-            upsampling = 4
+            upsampling = 8
             kernel_size = 1
         elif model_name == 'Unet':
             self.decoder = UnetDecoder(
-                encoder_channels=input_sample.out_channels,
+                encoder_channels=input_sample[-1].size()[1],
                 decoder_channels=decoder_channels,
                 n_blocks=len(input_sample)-1,
                 use_batchnorm=True,
@@ -81,6 +82,7 @@ class SegmentationDecoder(SegmentationModel):
         else:
             assert False, f'Unexpected model name: {model_name}'
 
+        activation = activation if activation != 'None' else None
         self.segmentation_head = SegmentationHead(
             in_channels=self.decoder.out_channels,
             out_channels=classes,

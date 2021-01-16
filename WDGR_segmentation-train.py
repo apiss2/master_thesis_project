@@ -70,7 +70,8 @@ if __name__ == '__main__':
     with torch.no_grad():
         sample = torch.rand((2, 3, settings.image_size, settings.image_size))
         sample = model.encoder.forward(sample)[-1]
-    model_D = Discriminator(sample, settings.discriminator_channels, gradient_reversal=False, use_GAP=True)
+    model_D = Discriminator(sample, settings.discriminator_channels,
+        batchnorm=False, gradient_reversal=False, use_GAP=False, last_activation=None)
 
     # loss function
     print('loss : ', settings.loss)

@@ -29,12 +29,9 @@ class GradientReversal(torch.nn.Module):
         return GradientReversalFunction.apply(x, self.lambda_)
 
 class Discriminator(nn.Module):
-    def __init__(self, input_sample, hidden_channels, batchnorm=True,\
-                 gradient_reversal=False, use_GAP=False):
+    def __init__(self, input_sample, hidden_channels:list, batchnorm:bool=True,\
+                 gradient_reversal:bool=False, use_GAP:bool=False, last_activation:str='sigmoid'):
         super(Discriminator, self).__init__()
-        assert type(hidden_channels) == list, 'Type of hidden_channels must be list.'
-        self.use_GAP = use_GAP
-
         size = input_sample.size()
         ch_in, w, h = size[1], size[2], size[3]
         assert w==h, 'The width and height must match.'
@@ -60,7 +57,15 @@ class Discriminator(nn.Module):
             size = sample.size()
             ch, w, h = size[1], size[2], size[3]
             nn_modules.append(nn.Linear(int(ch*w*h), 1))
-        nn_modules.append(nn.Sigmoid())
+
+        if last_activation=='sigmoid':
+            nn_modules.append(nn.Sigmoid())
+        elif last_activation=='relu' or last_activation=='leakyrelu':
+            nn_modules.append(nn.LeakyReLU(0.2, inplace=True))
+        elif last_activation is None:
+            pass
+        else:
+            assert False, f'No such activation: {last_activation}'
         self.fc = nn.Sequential(*nn_modules)
 
     def forward(self, x):

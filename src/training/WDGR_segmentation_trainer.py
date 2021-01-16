@@ -6,25 +6,28 @@ from torch import autograd
 from .train_util import GANEpoch, Tester, UnNormalize
 
 
-def gradient_penalty_2D(model_D, real_data, fake_data, device):
-    """code from https://github.com/lynnezixuan/CS231N/blob/master/3D-Generation-WGAN-GP-PYTORCH.py"""
-    alpha = np.random.rand(real_data.size()[0], 1, 1, 1)
-    alpha = torch.from_numpy(alpha*np.ones(real_data.size())).float()
-    alpha = alpha.to(device)
-
-    interpolates = alpha * real_data + ((1 - alpha) * fake_data)
-
-    interpolates = interpolates.to(device)
-    interpolates = autograd.Variable(interpolates, requires_grad=True)
-
-    disc_interpolates = model_D(interpolates)
-
-    gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
-                              grad_outputs=torch.ones(disc_interpolates.size()).to(device),
-                              create_graph=True, retain_graph=True, only_inputs=True)[0]
-
-    gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean()
-    return gradient_penalty
+def compute_gradient_penalty(model_D, real, fake, device):
+    '''code from https://github.com/donand/GAN_pytorch/blob/master/WGAN-GP/wgan_gp.py'''
+    # Compute the sample as a linear combination
+    alpha = torch.rand(real.shape[0], 1, 1, 1).to(device)
+    alpha = alpha.expand_as(real)
+    x_hat = alpha * real + (1 - alpha) * fake
+    # Compute the output
+    x_hat = torch.autograd.Variable(x_hat, requires_grad=True)
+    out = model_D(x_hat)
+    # compute the gradient relative to the new sample
+    gradients = torch.autograd.grad(
+        outputs=out,
+        inputs=x_hat,
+        grad_outputs=torch.ones(out.size()).to(device),
+        create_graph=True,
+        retain_graph=True,
+        only_inputs=True)[0]
+    # Reshape the gradients to take the norm
+    gradients = gradients.view(gradients.shape[0], -1)
+    # Compute the gradient penalty
+    penalty = (gradients.norm(2, dim=1) - 1) ** 2
+    return penalty.mean()
 
 
 class TrainEpoch(GANEpoch):
@@ -65,17 +68,20 @@ class TrainEpoch(GANEpoch):
             with torch.no_grad():
                 features_A = self.model.encoder.forward(x_A)[-1]
                 features_B = self.model.encoder.forward(x_B)[-1]
-            gp = gradient_penalty_2D(self.model_D, features_A, features_B, self.device)
+            gp = compute_gradient_penalty(self.model_D, features_A, features_B, self.device)
             pred_A_D = self.model_D.forward(features_A).squeeze()
             pred_B_D = self.model_D.forward(features_B).squeeze()
+            # NOTE
+            # The Wasserstein distance is squared
+            # so that it does not diverge to negative values.
+            # Note that this is different from the official implementation.
+            wasserstein_distance = (pred_A_D.mean() - pred_B_D.mean())**2
             # loss
-            wasserstein_distance = pred_A_D.mean() - pred_B_D.mean()
             loss, _ = self.update_loss(gp, wasserstein_distance, self.loss_D)
             # backward
             loss.backward()
             self.optimizer_D.step()
-            self.update_metrics(y_A_D, pred_A_D, self.metrics_D)
-            self.update_metrics(y_B_D, pred_B_D, self.metrics_D)
+            self.update_metrics(wasserstein_distance, gp, self.metrics_D)
 
         ### update generator ###
         if self.iter % self.modelupdate_freq == 0:
@@ -130,8 +136,7 @@ class ValidEpoch(GANEpoch):
             wasserstein_distance = pred_A_D.mean() - pred_B_D.mean()
             # logging
             self.update_loss(gp, wasserstein_distance, self.loss_D)
-            self.update_metrics(y_A_D, pred_A_D, self.metrics_D)
-            self.update_metrics(y_B_D, pred_B_D, self.metrics_D)
+            self.update_metrics(wasserstein_distance, gp, self.metrics_D)
 
             ### update generator ###
             # predict

@@ -7,7 +7,7 @@ from warmup_scheduler import GradualWarmupScheduler
 from ..loss.BCEloss import BCELoss, BCEWithLogitsLoss
 from ..loss.CrossEntropy import (CE_Dice_Loss, CrossEntropyLoss,
                                  CrossEntropyLoss2d, CrossEntropyWithDiceLoss)
-from ..loss.DistanceLoss import MAE, MSE, WassersteinLoss, WassersteinMetric
+from ..loss.DistanceLoss import MAE, MSE, WassersteinGPLoss, WassersteinDistance, GradientPenalty2D
 from ..loss.gridloss import GridMetric, TransformedGridLoss
 
 
@@ -38,7 +38,7 @@ def get_loss(name:str, class_weight:list=None, **kwargs):
     elif name.lower() == 'grid':
         loss = TransformedGridLoss(**kwargs)
     elif name.lower() == 'wasserstein':
-        loss = WassersteinLoss()
+        loss = WassersteinGPLoss()
     else:
         assert False, 'Unexpected loss name: {}'.format(name)
     return loss
@@ -58,7 +58,9 @@ def get_metric(name:str, **kwargs):
     elif name.lower() == 'grid':
         metric = GridMetric(**kwargs)
     elif name.lower() == 'wasserstein':
-        loss = WassersteinMetric()
+        metric = WassersteinDistance()
+    elif name.lower() == 'gradientpenalty':
+        metric = GradientPenalty2D()
     else:
         assert False, 'Unexpected metric name: {}'.format(name)
     return metric

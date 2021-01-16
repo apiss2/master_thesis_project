@@ -36,8 +36,6 @@ class CNNGeometric(nn.Module):
                                                    kernel_sizes=fr_kernel_sizes,
                                                    channels=fr_channels)
 
-        self.ReLU = nn.ReLU(inplace=True)
-
     def forward(self, src_image, tgt_image):
         # feature extraction
         feature_A = self.encoder(src_image)[-1]

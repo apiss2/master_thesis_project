@@ -4,7 +4,7 @@ from torch.autograd import Variable
 from torch.nn.modules.module import Module
 
 class AffineGridGen(Module):
-    def __init__(self, out_h=240, out_w=240, out_ch = 3, use_cuda=True):
+    def __init__(self, out_h=256, out_w=256, out_ch = 3):
         super(AffineGridGen, self).__init__()
         self.out_h = out_h
         self.out_w = out_w

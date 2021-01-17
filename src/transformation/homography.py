@@ -8,10 +8,10 @@ from torch.nn.modules.module import Module
 from ..utils.utils import expand_dim
 
 class HomographyGridGen(Module):
-    def __init__(self, out_h=240, out_w=240, use_cuda=True):
+    def __init__(self, out_h=256, out_w=256, device='cpu'):
         super(HomographyGridGen, self).__init__()
         self.out_h, self.out_w = out_h, out_w
-        self.use_cuda = use_cuda
+        self.device = device
 
         # create grid in numpy
         # self.grid = np.zeros( [self.out_h, self.out_w, 3], dtype=np.float32)
@@ -22,9 +22,9 @@ class HomographyGridGen(Module):
         self.grid_Y = torch.FloatTensor(self.grid_Y).unsqueeze(0).unsqueeze(3)
         self.grid_X = Variable(self.grid_X,requires_grad=False)
         self.grid_Y = Variable(self.grid_Y,requires_grad=False)
-        if use_cuda:
-            self.grid_X = self.grid_X.cuda()
-            self.grid_Y = self.grid_Y.cuda()
+
+        self.grid_X = self.grid_X.to(device)
+        self.grid_Y = self.grid_Y.to(device)
 
     def forward(self, theta):
         b=theta.size(0)

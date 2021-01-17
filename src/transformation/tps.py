@@ -6,7 +6,7 @@ from torch.autograd import Variable
 from torch.nn.modules.module import Module
 
 class TpsGridGen(Module):
-    def __init__(self, out_h=240, out_w=240, use_regular_grid=True, grid_size=3, reg_factor=0, use_cuda=True):
+    def __init__(self, out_h=256, out_w=256, use_regular_grid=True, grid_size=3, reg_factor=0, device='cpu'):
         super(TpsGridGen, self).__init__()
         self.out_h, self.out_w = out_h, out_w
         self.reg_factor = reg_factor
@@ -21,9 +21,9 @@ class TpsGridGen(Module):
         self.grid_Y = torch.FloatTensor(self.grid_Y).unsqueeze(0).unsqueeze(3)
         self.grid_X = Variable(self.grid_X,requires_grad=False)
         self.grid_Y = Variable(self.grid_Y,requires_grad=False)
-        if use_cuda:
-            self.grid_X = self.grid_X.cuda()
-            self.grid_Y = self.grid_Y.cuda()
+
+        self.grid_X = self.grid_X.to(device)
+        self.grid_Y = self.grid_Y.to(device)
 
         # initialize regular grid for control points P_i
         if use_regular_grid:

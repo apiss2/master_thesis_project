@@ -9,7 +9,7 @@ from ..transformation.core import PointTnf
 class TransformedGridLoss(nn.Module):
     __name__ = 'GridLoss'
 
-    def __init__(self, geometric='affine', use_cuda=True, grid_size=20):
+    def __init__(self, geometric='affine', device='cpu', grid_size=20):
         super(TransformedGridLoss, self).__init__()
         self.geometric = geometric
 
@@ -21,9 +21,8 @@ class TransformedGridLoss(nn.Module):
         Y = np.reshape(Y,(1,1,self.N))
         P = np.concatenate((X,Y),1)
         self.P = Variable(torch.FloatTensor(P),requires_grad=False)
-        self.pointTnf = PointTnf(use_cuda=use_cuda)
-        if use_cuda:
-            self.P = self.P.cuda()
+        self.pointTnf = PointTnf(device=device)
+        self.P = self.P.to(device)
 
     def _expand_grid(self, theta):
         # expand grid according to batch size
@@ -58,9 +57,9 @@ class TransformedGridLoss(nn.Module):
 class GridMetric(TransformedGridLoss):
     __name__ = 'GridMetric'
 
-    def __init__(self, geometric='affine', use_cuda=True, grid_size=20):
+    def __init__(self, geometric='affine', device='cpu', grid_size=20):
         super().__init__(\
-            geometric=geometric, use_cuda=use_cuda, grid_size=grid_size)
+            geometric=geometric, device=device, grid_size=grid_size)
 
     def forward(self, theta, theta_GT):
         P = self._expand_grid(theta)

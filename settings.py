@@ -98,6 +98,7 @@ activation = config.get('activation')
 
 freeze_encoder = config.getboolean('freeze_encoder')
 pretrained_model_path = config.get('pretrained_model_path')
+pretrained_encoder_path = config.get('pretrained_encoder_path')
 padding_mode = config.get('padding_mode')
 
 if config.get('discriminator_channels') is not None:

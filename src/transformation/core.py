@@ -14,19 +14,19 @@ class GeometricTnf(object):
     ( can be used with no transformation to perform bilinear resizing )
     """
     def __init__(self, geometric_model='affine', padding_mode='zeros',\
-        tps_grid_size=3, size=240, use_cuda=True):
+        tps_grid_size=3, size=240, device='cpu'):
         self.padding_mode = padding_mode
 
         if geometric_model=='affine':
-            self.gridGen = AffineGridGen(out_h=size, out_w=size, use_cuda=use_cuda)
+            self.gridGen = AffineGridGen(out_h=size, out_w=size)
         elif geometric_model=='hom':
-            self.gridGen = HomographyGridGen(out_h=size, out_w=size, use_cuda=use_cuda)
+            self.gridGen = HomographyGridGen(out_h=size, out_w=size, device=device)
         elif geometric_model=='tps':
-            self.gridGen = TpsGridGen(out_h=size, out_w=size, grid_size=tps_grid_size, use_cuda=use_cuda)
+            self.gridGen = TpsGridGen(out_h=size, out_w=size, grid_size=tps_grid_size, device=device)
 
         self.theta_identity = torch.Tensor(np.expand_dims(np.array([[1,0,0],[0,1,0]]),0).astype(np.float32))
-        if use_cuda:
-            self.theta_identity = self.theta_identity.cuda()
+
+        self.theta_identity = self.theta_identity.to(device)
 
     def __call__(self, image_batch, theta_batch=None, return_warped_image=True, return_sampling_grid=False):
         if image_batch is None:
@@ -55,9 +55,9 @@ class PointTnf(object):
     """
     Class with functions for transforming a set of points with affine/tps transformations
     """
-    def __init__(self, use_cuda=True):
-        self.use_cuda=use_cuda
-        self.tpsTnf = TpsGridGen(use_cuda=self.use_cuda)
+    def __init__(self, device='cpu'):
+        self.device=device
+        self.tpsTnf = TpsGridGen(device=device)
 
     def tpsPointTnf(self,theta,points):
         # points are expected in [B,2,N], where first row is X and second row is Y

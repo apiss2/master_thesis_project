@@ -1,4 +1,5 @@
 dataset/
+result/
 !src/dataset/
 notebooks/
 !augmentation_settings/*.json

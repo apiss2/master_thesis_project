@@ -15,7 +15,7 @@ from src.dataset import albmentation_augmentation as aug
 from src.dataset.geometric_transform_dataset import GeometricDataset
 # training
 from src.utils import opt_util
-from src.training.cnngeometric_trainer import TestEpoch
+from src.training.test_util import RegistrationTester
 # utils
 from src.utils import utils
 import settings
@@ -69,14 +69,14 @@ if __name__ == '__main__':
     save_path = os.path.join(settings.save_dir, 'pred_image')
     os.makedirs(save_path, exist_ok=True)
 
-    test_epoch = TestEpoch(
+    tester = RegistrationTester(
         model=model, loss=loss, metrics=metrics, device=DEVICE,
         geometric_transform=geometric_transform,
         save_path=save_path, mean=settings.mean, std=settings.std
     )
 
     # evaluate
-    logs = test_epoch.run(test_loader)
+    logs = tester.run(test_loader)
 
     json_path = os.path.join(settings.save_dir, 'results.json')
     with open(json_path, 'w') as f:
@@ -84,4 +84,4 @@ if __name__ == '__main__':
 
     json_path = os.path.join(settings.save_dir, 'results_all.json')
     with open(json_path, 'w') as f:
-        json.dump(test_epoch.all_logs, f, indent=4)
+        json.dump(tester.all_logs, f, indent=4)

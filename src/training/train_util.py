@@ -1,31 +1,9 @@
-import os
 import sys
 
-import cv2
 import torch
-import numpy as np
 from tqdm import tqdm as tqdm
 
 from ..utils.meter import AverageValueMeter
-from ..utils.utils import onehot2color
-
-
-class UnNormalize(object):
-    def __init__(self, mean, std):
-        self.mean = mean
-        self.std = std
-
-    def __call__(self, tensor):
-        """
-        Args:
-            tensor (Tensor): Tensor image of size (C, H, W) to be normalized.
-        Returns:
-            Tensor: Normalized image.
-        """
-        for t, m, s in zip(tensor, self.mean, self.std):
-            t.mul_(s).add_(m)
-            # The normalize code -> t.sub_(m).div_(s)
-        return tensor
 
 
 class Epoch:
@@ -160,37 +138,46 @@ class WDGREpoch(Epoch):
         self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
 
 
-class Tester(Epoch):
-    def __init__(self, model, loss, metrics:list, device:str='cpu',
-                    label_type:str='binary_label', color_palette:list=None,
-                    save_path:str=None, mean:list=None, std:list=None):
-        super().__init__(
-            model=model, loss=loss, metrics=metrics,
-            stage_name='test', device=device,
-        )
-        self.label_type = label_type
-        self.save_image = False if save_path is None else True
-        self.save_path = save_path
-        self.color_palette = color_palette
-        self.all_logs = dict()
-        self.unorm = None if None in [mean, std] else UnNormalize(mean=mean, std=std)
+class MultiTaskEpoch(Epoch):
+    """This is the code written with reference to https://github.com/qubvel/segmentation_models.pytorch"""
+    def __init__(self, encoder,
+            decoder_seg, loss_seg, metrics_seg:list,
+            decoder_geo, loss_geo, metrics_geo:list,
+            model_D, loss_D, metrics_D:list,
+            device:str='cpu', stage_name='train'
+            ):
+        self.encoder = encoder
+        self.decoder_seg = decoder_seg
+        self.decoder_geo = decoder_geo
+        self.loss_seg = loss_seg
+        self.loss_geo = loss_geo
+        self.metrics_seg = metrics_seg
+        self.metrics_geo = metrics_geo
 
-    def on_epoch_start(self):
-        self.iter_num = 0
-        self.model.eval()
+        self.model_D = model_D
+        self.loss_D = loss_D
+        self.metrics_D = metrics_D
 
-    def imwrite(self, x, name, is_image=False):
-        pred_np = x.cpu().detach().numpy().transpose([1,2,0])
-        image = pred_np if is_image else self.convert2image(pred_np)
-        image = (image * 255).astype('uint8')
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        path = os.path.join(self.save_path, name)
-        cv2.imwrite(path, image)
+        self.stage_name = stage_name
+        self.device = device
+        self.verbose = True
+        self._to_device()
 
-    def convert2image(self, output):
-        output = np.where(output>0.5, 1, 0)
-        if self.label_type=='binary_label':
-            output = output[...,0]
-        else:
-            output = onehot2color(output, self.color_palette)
-        return output
+    def _to_device(self):
+        self.encoder = self.encoder.to(self.device)
+        self.decoder_seg = self.decoder_seg.to(self.device)
+        self.decoder_geo = self.decoder_geo.to(self.device)
+        self.loss_seg = self.loss_seg.to(self.device)
+        self.loss_geo = self.loss_geo.to(self.device)
+        self.metrics_seg = [metric.to(self.device) for metric in self.metrics_seg]
+        self.metrics_geo = [metric.to(self.device) for metric in self.metrics_geo]
+
+        self.model_D = self.model_D.to(self.device)
+        self.loss_D = self.loss_D.to(self.device)
+        self.metrics_D = [metric.to(self.device) for metric in self.metrics_D]
+
+    def reset_meters(self):
+        losses = [self.loss_seg, self.loss_geo, self.loss_D]
+        self.loss_meters = {loss.__name__: AverageValueMeter() for loss in losses}
+        metrics = self.metrics_seg + self.metrics_geo + self.metrics_D
+        self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in metrics}

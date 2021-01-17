@@ -10,6 +10,7 @@ import segmentation_models_pytorch as smp
 
 from .cnngeometric_base import FeatureExtraction, FeatureCorrelation, FeatureRegression
 
+
 class CNNGeometric(nn.Module):
     """This is the code written with reference to https://github.com/ignacio-rocco/cnngeometric_pytorch"""
     def __init__(self, encoder='resnet50',
@@ -54,4 +55,27 @@ class CNNGeometric(nn.Module):
         # feature correlation
         correlation = self.correlater(feature_A,feature_B)
         return correlation
+
+
+class CNNGeometricDecoder(nn.Module):
+    """This is the code written with reference to https://github.com/ignacio-rocco/cnngeometric_pytorch"""
+    def __init__(self, fe_output_shape, output_dim=6,
+                 fr_kernel_sizes=[3,3,3],
+                 fr_channels=[128,64,32],
+                 corr_type='3D'):
+        super(CNNGeometricDecoder, self).__init__()
+        assert len(fr_channels)==len(fr_kernel_sizes), 'The list of channels must match the list of kernel sizes in length.'
+
+        self.correlater = FeatureCorrelation(shape=corr_type)
+        self.regresser = FeatureRegression(output_dim=output_dim,
+                                                   input_shape=fe_output_shape,
+                                                   kernel_sizes=fr_kernel_sizes,
+                                                   channels=fr_channels)
+
+    def forward(self, feature_A, feature_B):
+        # feature correlation
+        correlation = self.correlater(feature_A, feature_B)
+        # regression
+        theta = self.regresser(correlation)
+        return theta
 

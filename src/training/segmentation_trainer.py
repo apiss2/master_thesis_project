@@ -3,7 +3,7 @@ import cv2
 import torch
 import numpy as np
 
-from .train_util import Epoch, Tester
+from .train_util import Epoch
 
 class TrainEpoch(Epoch):
     def __init__(self, model, loss, metrics:list, \
@@ -42,38 +42,3 @@ class ValidEpoch(Epoch):
             pred = self.model(x)
             self.update_loss(y, pred, self.loss)
             self.update_metrics(y, pred, self.metrics)
-
-class TestEpoch(Tester):
-    def __init__(self, model, loss, metrics:list, device:str='cpu', \
-                    label_type:str='binary_label', color_palette:list=None,
-                    save_path:str=None, mean:list=None, std:list=None):
-        super().__init__(
-            model=model, loss=loss, metrics=metrics, device=device,
-            label_type=label_type, color_palette=color_palette,
-            save_path=save_path, mean=mean, std=std
-        )
-
-    def batch_update(self, batch):
-        self.iter_num += 1
-        self.all_logs[self.iter_num] = dict()
-
-        with torch.no_grad():
-            x, y = batch['x'], batch['y']
-            pred = self.model(x)
-            _, loss_value = self.update_loss(y, pred, self.loss)
-            metrics_values = self.update_metrics(y, pred, self.metrics)
-            self.all_logs[self.iter_num][self.loss.__name__] = loss_value
-            self.all_logs[self.iter_num].update(metrics_values)
-
-        if self.save_image:
-            # predict image
-            name = 'predict_{:03}.png'.format(self.iter_num)
-            self.imwrite(pred[0], name)
-
-            # image
-            name = 'image_{:03}.png'.format(self.iter_num)
-            self.imwrite(self.unorm(x[0]), name, is_image=True)
-
-            # label
-            name = 'label_{:03}.png'.format(self.iter_num)
-            self.imwrite(y[0], name)

@@ -72,13 +72,6 @@ if __name__ == '__main__':
     decoder_2 = seg.SegmentationDecoder(settings.model, sample, depth=settings.depth,
         activation=settings.activation, classes=settings.class_num)
 
-    # discriminator definition
-    with torch.no_grad():
-        sample = torch.rand((2, 3, settings.image_size, settings.image_size))
-        sample = model.forward(sample)[-1]
-    model_D = Discriminator(sample, settings.discriminator_channels,
-        batchnorm=True, gradient_reversal=False, use_GAP=True, last_activation='sigmoid')
-
     # loss function
     print('loss : ', settings.loss)
     print('loss_D : ', settings.loss_D)

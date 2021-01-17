@@ -4,7 +4,6 @@ warnings.simplefilter('ignore')
 # torch
 import torch
 from torch.utils.data import DataLoader
-from torch.optim import lr_scheduler as lrs
 
 # model
 from src.models.DA_model import Discriminator

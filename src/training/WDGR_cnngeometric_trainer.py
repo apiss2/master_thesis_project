@@ -4,7 +4,7 @@ import torch
 from torch import autograd
 
 from ..utils.meter import AverageValueMeter
-from .train_util import GANEpoch, Tester, UnNormalize
+from .train_util import GANEpoch
 
 
 def gradient_penalty_2D(model_D, real_data, fake_data, device):
@@ -33,7 +33,7 @@ class TrainEpoch(GANEpoch):
                     model_D, loss_D, metrics_D: list, optimizer_D,
                     modelupdate_freq: int = 10, discupdate_freq: int = 10,
                     device: str = 'cpu', geometric_transform=None,
-                    segmentation_metrics: list = None):
+                    metrics_seg: list = None):
         super().__init__(
             model=model, loss=loss, metrics=metrics,
             model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
@@ -45,15 +45,15 @@ class TrainEpoch(GANEpoch):
         self.discupdate_freq = discupdate_freq
 
         self.geometric_transform = geometric_transform
-        self.segmentation_metrics = [metric.to(self.device) for metric in segmentation_metrics] if segmentation_metrics is not None else None
+        self.metrics_seg = [metric.to(self.device) for metric in metrics_seg] if metrics_seg is not None else None
 
     def reset_meters(self):
         self.loss_meters = {self.loss.__name__: AverageValueMeter()}
         self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
         self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
         self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
-        if self.segmentation_metrics is not None:
-            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.segmentation_metrics})
+        if self.metrics_seg is not None:
+            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_seg})
 
     def on_epoch_start(self):
         self.iter = 0
@@ -111,7 +111,7 @@ class TrainEpoch(GANEpoch):
             self.update_metrics(theta_A, pred_theta_A, self.metrics)
             self.update_metrics(theta_B, pred_theta_B, self.metrics)
 
-            if self.segmentation_metrics is not None:
+            if self.metrics_seg is not None:
                 src_label_A, src_label_B = y_A.float(), y_B.float()
                 # Create pseudo-labels by randomly deforming the image
                 tgt_label_A = self.geometric_transform(src_label_A, theta_A)
@@ -120,14 +120,14 @@ class TrainEpoch(GANEpoch):
                 pred_label_A = self.geometric_transform(src_label_A, pred_theta_A)
                 pred_label_B = self.geometric_transform(src_label_B, pred_theta_B)
                 # metrics
-                self.update_metrics(tgt_label_A, pred_label_A, self.segmentation_metrics)
-                self.update_metrics(tgt_label_B, pred_label_B, self.segmentation_metrics)
+                self.update_metrics(tgt_label_A, pred_label_A, self.metrics_seg)
+                self.update_metrics(tgt_label_B, pred_label_B, self.metrics_seg)
 
 
 class ValidEpoch(GANEpoch):
     def __init__(self, model, loss, metrics:list,
                 model_D, loss_D, metrics_D:list,
-                geometric_transform, segmentation_metrics: list = None,
+                geometric_transform, metrics_seg: list = None,
                 device:str='cpu'):
         super().__init__(
             model=model, loss=loss, metrics=metrics,
@@ -135,15 +135,15 @@ class ValidEpoch(GANEpoch):
             stage_name='valid', device=device,
         )
         self.geometric_transform = geometric_transform
-        self.segmentation_metrics = [metric.to(self.device) for metric in segmentation_metrics] if segmentation_metrics is not None else None
+        self.metrics_seg = [metric.to(self.device) for metric in metrics_seg] if metrics_seg is not None else None
 
     def reset_meters(self):
         self.loss_meters = {self.loss.__name__: AverageValueMeter()}
         self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
         self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
         self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
-        if self.segmentation_metrics is not None:
-            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.segmentation_metrics})
+        if self.metrics_seg is not None:
+            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_seg})
 
     def on_epoch_start(self):
         self.model.eval()
@@ -151,8 +151,8 @@ class ValidEpoch(GANEpoch):
 
     def batch_update(self, batch):
         ### prepare inputs ###
-        x_A, y_A = batch['x_A'], batch['y_A']
-        x_B, y_B = batch['x_B'], batch['y_B']
+        x_A, y_A, theta_A = batch['x_A'], batch['y_A'], batch['theta_A']
+        x_B, y_B, theta_B = batch['x_B'], batch['y_B'], batch['theta_B']
         y_A_D = (torch.ones(x_A.size()[0])).to(self.device)
         y_B_D = (torch.zeros(x_A.size()[0])).to(self.device)
         tgt_x_A = self.geometric_transform(x_A, theta_A)
@@ -183,7 +183,7 @@ class ValidEpoch(GANEpoch):
             self.update_metrics(theta_A, pred_theta_A, self.metrics)
             self.update_metrics(theta_B, pred_theta_B, self.metrics)
 
-            if self.segmentation_metrics is not None:
+            if self.metrics_seg is not None:
                 src_label_A, src_label_B = y_A.float(), y_B.float()
                 # Create pseudo-labels by randomly deforming the image
                 tgt_label_A = self.geometric_transform(src_label_A, theta_A)
@@ -192,58 +192,5 @@ class ValidEpoch(GANEpoch):
                 pred_label_A = self.geometric_transform(src_label_A, pred_theta_A)
                 pred_label_B = self.geometric_transform(src_label_B, pred_theta_B)
                 # metrics
-                self.update_metrics(tgt_label_A, pred_label_A, self.segmentation_metrics)
-                self.update_metrics(tgt_label_B, pred_label_B, self.segmentation_metrics)
-
-
-class TestEpoch(Tester):
-    def __init__(self, model, loss, metrics: list, device: str = 'cpu',
-                    target_modality:str = 'A', save_path: str = None,
-                    label_type: str = 'binary_label', color_palette: list = None,
-                    mean_A: list = None, std_A: list = None,
-                    mean_B: list = None, std_B: list = None):
-        super().__init__(
-            model=model, loss=loss, metrics=metrics, device=device,
-            label_type=label_type, color_palette=color_palette, save_path=save_path
-        )
-        assert target_modality == 'A' or target_modality == 'B', 'target_modality must be A or B'
-        self.target_modality = target_modality
-
-        self.unorm_A = None if None in [mean_A, std_A] else UnNormalize(mean=mean_A, std=std_A)
-        self.unorm_B = None if None in [mean_B, std_B] else UnNormalize(mean=mean_B, std=std_B)
-
-    def batch_update(self, batch):
-        self.iter_num += 1
-        self.all_logs[self.iter_num] = dict()
-
-        ### prepare inputs ###
-        x_A, y_A = batch['x_A'], batch['y_A']
-        x_B, y_B = batch['x_B'], batch['y_B']
-
-        for i, (x, y) in enumerate(zip([x_A, x_B], [y_A, y_B])):
-            modality = 'A' if i==0 else 'B'
-            if not modality in self.target_modality:
-                continue
-
-            with torch.no_grad():
-                # predict
-                pred = self.model.forward(x)
-                # logging
-                _, loss_value = self.update_loss(y, pred, self.loss)
-                metrics_values = self.update_metrics(y, pred, self.metrics)
-                self.all_logs[self.iter_num][self.loss.__name__] = loss_value
-                self.all_logs[self.iter_num].update(metrics_values)
-
-            if self.save_image:
-                # predict image
-                name = 'predict_{}_{:03}.png'.format(modality, self.iter_num)
-                self.imwrite(pred[0], name)
-
-                # image
-                name = 'image_{}_{:03}.png'.format(modality, self.iter_num)
-                x = self.unorm_A(x[0]) if modality == 'A' else self.unorm_B(x[0])
-                self.imwrite(x, name, is_image=True)
-
-                # label
-                name = 'label_{}_{:03}.png'.format(modality, self.iter_num)
-                self.imwrite(y[0], name)
+                self.update_metrics(tgt_label_A, pred_label_A, self.metrics_seg)
+                self.update_metrics(tgt_label_B, pred_label_B, self.metrics_seg)

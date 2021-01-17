@@ -5,7 +5,7 @@ Three methods are compared: [DANN](https://arxiv.org/abs/1409.7495), [WDGR](http
 # requirement
 - [pytorch](https://pytorch.org/) == 1.7.1
 - [segmentation-models-pytorch](https://github.com/qubvel/segmentation_models.pytorch) == 0.1.3
-- [albumentations](https://github.com/albumentations-team/albumentations) == 0.5.2
+- [albumentations](https://github.com/albumentations-team/albumentations) == 0.4.6
 - [warmup-scheduler](https://github.com/ildoonet/pytorch-gradual-warmup-lr) == 0.3.2
 
 

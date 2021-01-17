@@ -15,7 +15,7 @@ from src.dataset.geometric_transform_dataset import DAGeometricDataset
 from src.dataset import albmentation_augmentation as aug
 # training
 from src.utils import opt_util
-from src.training.WDGR_cnngeometric_trainer import TrainEpoch, ValidEpoch
+from src.training.DANN_cnngeometric_trainer import TrainEpoch, ValidEpoch
 # utils
 from src.utils import utils
 import settings
@@ -23,8 +23,7 @@ import settings
 if __name__ == '__main__':
     # init_training
     train_logger, valid_logger = utils.init_logging(settings.save_dir)
-    use_cuda = torch.cuda.is_available()
-    DEVICE = "cuda" if use_cuda else "cpu"
+    DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
     # datasets
     image_A_train_pathes = utils.get_pathes(settings.image_A_train_path)
@@ -60,7 +59,7 @@ if __name__ == '__main__':
     valid_loader = DataLoader(valid_dataset, batch_size=settings.batch_size,\
                             shuffle=False, num_workers=settings.num_workers)
 
-    geometric_transform = GeometricTnf(geometric_model=settings.geometric, use_cuda=use_cuda, \
+    geometric_transform = GeometricTnf(geometric_model=settings.geometric, device=DEVICE, \
                                         padding_mode=settings.padding_mode, size=settings.image_size)
 
     # geometric model definition
@@ -96,18 +95,16 @@ if __name__ == '__main__':
     # optimizer
     print('optimizer : ', settings.optimizer)
     optimizer = opt_util.get_optimizer(settings.optimizer, model.parameters(), settings.lr)
-    optimizer_D = opt_util.get_optimizer(settings.optimizer_D, model_D.parameters(), settings.lr_D)
+    optimizer_D = opt_util.get_optimizer(settings.optimizer, model_D.parameters(), settings.lr)
 
     # scheduler
-    print('scheduler : ', settings.scheduler_type)
-    scheduler = opt_util.get_scheduler(settings.scheduler_type, optimizer, milestones=settings.decay_schedule,
-                        gamma=settings.gamma, T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
-    scheduler_D = opt_util.get_scheduler(settings.scheduler_type, optimizer_D, milestones=settings.decay_schedule,
-                        gamma=settings.gamma, T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
+    print('scheduler : ', settings.scheduler)
+    scheduler = lrs.MultiStepLR(optimizer, milestones=settings.decay_schedule, gamma=settings.gamma)
+    scheduler_D = lrs.MultiStepLR(optimizer_D, milestones=settings.decay_schedule, gamma=settings.gamma)
 
     # trainner
     train_epoch = TrainEpoch(
-        model=model, loss = loss, metrics = metrics, segmentation_metrics=metrics_seg,
+        model=model, loss = loss, metrics = metrics, metrics_seg=metrics_seg,
         model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
         modelupdate_freq=settings.modelupdate_freq,
         discupdate_freq=settings.discupdate_freq,
@@ -117,7 +114,7 @@ if __name__ == '__main__':
     valid_epoch = ValidEpoch(
         model=model, loss = loss, metrics = metrics, device=DEVICE,
         model_D=model_D, loss_D=loss_D, metrics_D=metrics_D,
-        geometric_transform=geometric_transform,  segmentation_metrics=metrics_seg
+        geometric_transform=geometric_transform,  metrics_seg=metrics_seg
     )
 
     # training

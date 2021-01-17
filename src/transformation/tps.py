@@ -10,7 +10,7 @@ class TpsGridGen(Module):
         super(TpsGridGen, self).__init__()
         self.out_h, self.out_w = out_h, out_w
         self.reg_factor = reg_factor
-        self.use_cuda = use_cuda
+        self.device = device
 
         # create grid in numpy
         # self.grid = np.zeros( [self.out_h, self.out_w, 3], dtype=np.float32)
@@ -39,9 +39,9 @@ class TpsGridGen(Module):
             self.P_Y = P_Y.unsqueeze(2).unsqueeze(3).unsqueeze(4).transpose(0,4)
             self.P_X = Variable(self.P_X,requires_grad=False)
             self.P_Y = Variable(self.P_Y,requires_grad=False)
-            if use_cuda:
-                self.P_X = self.P_X.cuda()
-                self.P_Y = self.P_Y.cuda()
+
+            self.P_X = self.P_X.to(device)
+            self.P_Y = self.P_Y.to(device)
 
     def forward(self, theta):
         warped_grid = self.apply_transformation(theta,torch.cat((self.grid_X,self.grid_Y),3))
@@ -64,8 +64,8 @@ class TpsGridGen(Module):
         P = torch.cat((O,X,Y),1)
         L = torch.cat((torch.cat((K,P),1),torch.cat((P.transpose(0,1),Z),1)),0)
         Li = torch.inverse(L)
-        if self.use_cuda:
-            Li = Li.cuda()
+
+        Li = Li.to(self.device)
         return Li
 
     def apply_transformation(self,theta,points):

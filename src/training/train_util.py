@@ -124,19 +124,17 @@ class WDGREpoch(Epoch):
         self.metrics_D = metrics_D
         self._to_device_D()
 
+    def reset_meters(self):
+        self.loss_meters = {self.loss.__name__: AverageValueMeter()}
+        self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
+        self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
+        self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
+
     def _to_device_D(self):
         self.decoder_1 = self.decoder_1.to(self.device)
         self.decoder_2 = self.decoder_2.to(self.device)
         self.loss_D = self.loss_D.to(self.device)
         self.metrics_D = [metric.to(self.device) for metric in self.metrics_D]
-
-    def reset_meters(self):
-        self.loss_meters = {self.loss.__name__: AverageValueMeter()}
-        self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
-
-        self.loss_meters.update({self.loss_D.__name__: AverageValueMeter()})
-        self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_D})
-
 
 class MultiTaskEpoch(Epoch):
     """This is the code written with reference to https://github.com/qubvel/segmentation_models.pytorch"""

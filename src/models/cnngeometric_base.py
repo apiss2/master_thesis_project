@@ -21,7 +21,7 @@ class FeatureExtraction(torch.nn.Module):
                 param.requires_grad = False
 
     def forward(self, image_batch):
-        return self.model(image_batch)
+        return self.model(image_batch)[-1]
 
 class FeatureCorrelation(torch.nn.Module):
     def __init__(self,shape='3D'):

@@ -39,8 +39,8 @@ class CNNGeometric(nn.Module):
 
     def forward(self, src_image, tgt_image):
         # feature extraction
-        feature_A = self.encoder(src_image)[-1]
-        feature_B = self.encoder(tgt_image)[-1]
+        feature_A = self.encoder(src_image)
+        feature_B = self.encoder(tgt_image)
         # feature correlation
         correlation = self.correlater(feature_A, feature_B)
         # regression
@@ -50,8 +50,8 @@ class CNNGeometric(nn.Module):
 
     def __test_forward(self, image):
         # feature extraction
-        feature_A = self.encoder(image)[-1]
-        feature_B = self.encoder(image)[-1]
+        feature_A = self.encoder(image)
+        feature_B = self.encoder(image)
         # feature correlation
         correlation = self.correlater(feature_A,feature_B)
         return correlation
@@ -59,14 +59,18 @@ class CNNGeometric(nn.Module):
 
 class CNNGeometricDecoder(nn.Module):
     """This is the code written with reference to https://github.com/ignacio-rocco/cnngeometric_pytorch"""
-    def __init__(self, fe_output_shape, output_dim=6,
+    def __init__(self, sample, output_dim=6,
                  fr_kernel_sizes=[3,3,3],
                  fr_channels=[128,64,32],
                  corr_type='3D'):
         super(CNNGeometricDecoder, self).__init__()
         assert len(fr_channels)==len(fr_kernel_sizes), 'The list of channels must match the list of kernel sizes in length.'
-
         self.correlater = FeatureCorrelation(shape=corr_type)
+
+        with torch.no_grad():
+            output = self.__test_forward(sample)
+        fe_output_shape = output.size()[1:]
+
         self.regresser = FeatureRegression(output_dim=output_dim,
                                                    input_shape=fe_output_shape,
                                                    kernel_sizes=fr_kernel_sizes,
@@ -79,3 +83,7 @@ class CNNGeometricDecoder(nn.Module):
         theta = self.regresser(correlation)
         return theta
 
+    def __test_forward(self, sample):
+        # feature correlation
+        correlation = self.correlater(sample, sample)
+        return correlation

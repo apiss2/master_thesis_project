@@ -40,10 +40,13 @@ class GradientPenalty2D(nn.Module):
 
 class Diff2d(nn.Module):
     __name__ = 'Diff2D'
-    def __init__(self):
+    def __init__(self, sum=False):
         super(Diff2d, self).__init__()
+        self.sum = sum
 
     def forward(self, inputs1, inputs2):
+        if self.sum:
+            return torch.sum(torch.abs(F.softmax(inputs1) - F.softmax(inputs2)))
         return torch.mean(torch.abs(F.softmax(inputs1) - F.softmax(inputs2)))
 
 

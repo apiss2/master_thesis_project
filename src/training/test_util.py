@@ -51,7 +51,7 @@ class Tester(Epoch):
         pred_np = x.cpu().detach().numpy().transpose([1,2,0])
         image = pred_np if is_image else self.convert2image(pred_np)
         image = (image * 255).astype('uint8')
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR) if is_image else image
         path = os.path.join(self.save_path, name)
         cv2.imwrite(path, image)
 
@@ -103,13 +103,13 @@ class SegmentationTester(Tester):
 class RegistrationTester(Tester):
     def __init__(self, model, loss, metrics:list, geometric_transform,\
                  save_path:str=None, mean:list=None, std:list=None,
-                 segmentation_metrics:list=None, device='cpu'):
+                 metrics_seg:list=None, device='cpu'):
         super().__init__(
             model=model, loss=loss, metrics=metrics, device=device,
             save_path=save_path, mean=mean, std=std
         )
         self.geometric_transform = geometric_transform
-        self.segmentation_metrics = [metric.to(self.device) for metric in segmentation_metrics] if segmentation_metrics is not None else None
+        self.metrics_seg = [metric.to(self.device) for metric in metrics_seg] if metrics_seg is not None else None
 
     def on_epoch_start(self):
         self.iter_num = 0
@@ -118,8 +118,8 @@ class RegistrationTester(Tester):
     def reset_meters(self):
         self.loss_meters = {self.loss.__name__: AverageValueMeter()}
         self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
-        if self.segmentation_metrics is not None:
-            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.segmentation_metrics})
+        if self.metrics_seg is not None:
+            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_seg})
 
     def batch_update(self, batch):
         self.iter_num += 1
@@ -139,14 +139,14 @@ class RegistrationTester(Tester):
 
         predict_image = self.geometric_transform(image, pred_theta)
 
-        if self.segmentation_metrics is not None:
+        if self.metrics_seg is not None:
             src_label = batch['label']
             # Create pseudo-labels by randomly deforming the image
             tgt_label = self.geometric_transform(src_label, theta)
             # Trim the center of the original image
             pred_label = self.geometric_transform(src_label, pred_theta)
             # metrics
-            metrics_values = self.update_metrics(tgt_label, pred_label, self.segmentation_metrics)
+            metrics_values = self.update_metrics(tgt_label, pred_label, self.metrics_seg)
             self.all_logs[self.iter_num].update(metrics_values)
 
         if self.save_image:
@@ -162,7 +162,7 @@ class RegistrationTester(Tester):
             name = 'predict_image_{:03}.png'.format(self.iter_num)
             self.imwrite(predict_image[0], name, is_image=True)
 
-            if self.segmentation_metrics is not None:
+            if self.metrics_seg is not None:
                 # src_label
                 name = 'src_label_{:03}.png'.format(self.iter_num)
                 self.imwrite(src_label[0], name)

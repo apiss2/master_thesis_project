@@ -39,23 +39,37 @@ class TrainEpoch(WDGREpoch):
         x_B, y_B = batch['x_B'], batch['y_B']
 
         ### update generator and classifiers ###
-        # predict
+        self.model.train()
+        self.set_requires_grad(self.model, requires_grad=True)
+        self.decoder_1.train()
+        self.set_requires_grad(self.decoder_1, requires_grad=True)
+        self.decoder_2.train()
+        self.set_requires_grad(self.decoder_2, requires_grad=True)
+        # src
         self.optimizer.zero_grad()
         self.optimizer_1.zero_grad()
-        self.optimizer_2.zero_grad()
+        # predict
         features = self.model.forward(x_A)
-        pred_1 = self.decoder_1.forward(features)
-        pred_2 = self.decoder_2.forward(features)
+        pred = self.decoder_1.forward(features)
         # loss
-        loss_tmp_1, _ = self.update_loss(y_A, pred_1, self.loss)
-        loss_tmp_2, _ = self.update_loss(y_A, pred_2, self.loss)
-        loss = loss_tmp_1 + loss_tmp_2
-        self.update_metrics(y_A, pred_1, self.metrics)
-        self.update_metrics(y_A, pred_2, self.metrics)
+        loss, _ = self.update_loss(y_A, pred, self.loss)
+        self.update_metrics(y_A, pred, self.metrics)
         # backward
         loss.backward()
         self.optimizer.step()
         self.optimizer_1.step()
+        # tgt
+        self.optimizer.zero_grad()
+        self.optimizer_2.zero_grad()
+        # predict
+        features = self.model.forward(x_B)
+        pred = self.decoder_2.forward(features)
+        # loss
+        loss, _ = self.update_loss(y_B, pred, self.loss)
+        self.update_metrics(y_B, pred, self.metrics)
+        # backward
+        loss.backward()
+        self.optimizer.step()
         self.optimizer_2.step()
 
         ### update classifiers ###
@@ -96,14 +110,15 @@ class TrainEpoch(WDGREpoch):
         self.set_requires_grad(self.decoder_2, requires_grad=False)
         self.optimizer.zero_grad()
         # predict
-        features = self.model.forward(x_B)
-        pred_A = self.decoder_1.forward(features)
-        pred_B = self.decoder_2.forward(features)
-        loss, _ = self.update_loss(pred_A, pred_B, self.loss_D)
-        self.update_metrics(pred_A, pred_B, self.metrics_D)
-        # backward
-        loss.backward()
-        self.optimizer.step()
+        for x in [x_A, x_B]:
+            features = self.model.forward(x)
+            pred_1 = self.decoder_1.forward(features)
+            pred_2 = self.decoder_2.forward(features)
+            loss, _ = self.update_loss(pred_1, pred_2, self.loss_D)
+            self.update_metrics(pred_1, pred_2, self.metrics_D)
+            # backward
+            loss.backward()
+            self.optimizer.step()
 
 
 class ValidEpoch(WDGREpoch):

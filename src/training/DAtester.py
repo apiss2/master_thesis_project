@@ -57,11 +57,13 @@ class DAsegmentationTester(Tester):
 class DAregistrationTester(Tester):
     def __init__(self, model, loss, metrics: list, geometric_transform,
                  target_modality: str = 'A', multi_modality: bool = False,
+                 label_type: str = 'binary_label', color_palette: list = None,
                  save_path: str = None, mean_A: list = None, std_A: list = None,
                  mean_B: list = None, std_B: list = None,
-                 segmentation_metrics: list = None, device='cpu'):
+                 metrics_seg: list = None, device='cpu'):
         super().__init__(
-            model=model, loss=loss, metrics=metrics, device=device, save_path=save_path
+            model=model, loss=loss, metrics=metrics, device=device, save_path=save_path,
+            label_type=label_type, color_palette=color_palette
         )
         assert target_modality == 'A' or target_modality == 'B', 'target_modality must be A or B'
         self.multi_modality = multi_modality
@@ -72,13 +74,13 @@ class DAregistrationTester(Tester):
         self.unorm_B = None if None in [mean_B, std_B] else UnNormalize(mean=mean_B, std=std_B)
 
         self.geometric_transform = geometric_transform
-        self.segmentation_metrics = [metric.to(self.device) for metric in segmentation_metrics] if segmentation_metrics is not None else None
+        self.metrics_seg = [metric.to(self.device) for metric in metrics_seg] if metrics_seg is not None else None
 
     def reset_meters(self):
         self.loss_meters = {self.loss.__name__: AverageValueMeter()}
         self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in self.metrics}
-        if self.segmentation_metrics is not None:
-            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.segmentation_metrics})
+        if self.metrics_seg is not None:
+            self.metrics_meters.update({metric.__name__: AverageValueMeter() for metric in self.metrics_seg})
 
     def batch_update(self, batch):
         self.iter_num += 1
@@ -127,13 +129,13 @@ class DAregistrationTester(Tester):
 
         predict_image = self.geometric_transform(image, pred_theta)
 
-        if self.segmentation_metrics is not None:
+        if self.metrics_seg is not None:
             # Create pseudo-labels by randomly deforming the image
-            tgt_label = self.geometric_transform(src_label, theta)
+            tgt_label = self.geometric_transform(src_label.float(), theta)
             # Trim the center of the original image
-            pred_label = self.geometric_transform(src_label, pred_theta)
+            pred_label = self.geometric_transform(src_label.float(), pred_theta)
             # metrics
-            metrics_values = self.update_metrics(tgt_label, pred_label, self.segmentation_metrics)
+            metrics_values = self.update_metrics(tgt_label, pred_label, self.metrics_seg)
             self.all_logs[self.iter_num].update(metrics_values)
 
         if self.save_image:
@@ -155,21 +157,21 @@ class DAregistrationTester(Tester):
             x = self.unorm_A(predict_image[0]) if src_modality == 'A' else self.unorm_B(predict_image[0])
             self.imwrite(x, name, is_image=True)
 
-            if self.segmentation_metrics is not None:
+            if self.metrics_seg is not None:
                 # src_label
                 name = '{}_{}_src_label_{:03}.png'.format(\
                     self.mono_or_multi, self.target_modality, self.iter_num)
-                x = self.unorm_A(src_label[0]) if src_modality == 'A' else self.unorm_B(src_label[0])
+                x = src_label[0] if src_modality == 'A' else src_label[0]
                 self.imwrite(x, name)
 
                 # tgt_label
                 name = '{}_{}_tgt_label_{:03}.png'.format(\
                     self.mono_or_multi, self.target_modality, self.iter_num)
-                x = self.unorm_A(tgt_label[0]) if tgt_modality == 'A' else self.unorm_B(tgt_label[0])
+                x = tgt_label[0] if tgt_modality == 'A' else tgt_label[0]
                 self.imwrite(x, name)
 
                 # predict_label
                 name = '{}_{}_predict_label_{:03}.png'.format(\
                     self.mono_or_multi, self.target_modality, self.iter_num)
-                x = self.unorm_A(pred_label[0]) if src_modality == 'A' else self.unorm_B(pred_label[0])
+                x = pred_label[0] if src_modality == 'A' else pred_label[0]
                 self.imwrite(x, name)

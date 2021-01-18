@@ -211,11 +211,11 @@ class ValidEpoch(WDGREpoch):
                 pred_1 = self.decoder_1.forward(src_features, tgt_features)
                 pred_2 = self.decoder_2.forward(src_features, tgt_features)
                 # loss
-                self.update_loss(y, pred_1, self.loss)
-                self.update_loss(y, pred_2, self.loss)
+                self.update_loss(theta, pred_1, self.loss)
+                self.update_loss(theta, pred_2, self.loss)
                 # metric
-                self.update_metrics(y, pred_1, self.metrics)
-                self.update_metrics(y, pred_2, self.metrics)
+                self.update_metrics(theta, pred_1, self.metrics)
+                self.update_metrics(theta, pred_2, self.metrics)
                 if self.metrics_seg is not None:
                     src_label = y.float()
                     # Create pseudo-labels by randomly deforming the image

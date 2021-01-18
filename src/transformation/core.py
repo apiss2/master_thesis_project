@@ -14,7 +14,7 @@ class GeometricTnf(object):
     ( can be used with no transformation to perform bilinear resizing )
     """
     def __init__(self, geometric_model='affine', padding_mode='zeros',\
-        tps_grid_size=3, size=240, device='cpu'):
+        tps_grid_size=3, size=256, device='cpu'):
         self.padding_mode = padding_mode
 
         if geometric_model=='affine':

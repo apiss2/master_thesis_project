@@ -40,9 +40,9 @@ class TrainEpoch(Epoch):
         if self.metrics_seg is not None:
             src_label = batch['label']
             # Create pseudo-labels by randomly deforming the image
-            tgt_label = self.geometric_transform(src_label, theta).long()
+            tgt_label = self.geometric_transform(src_label.float(), theta).long()
             # Trim the center of the original image
-            pred_label = self.geometric_transform(src_label, pred_theta)
+            pred_label = self.geometric_transform(src_label.float(), pred_theta)
             # metrics
             self.update_metrics(tgt_label, pred_label, self.metrics_seg)
 
@@ -78,9 +78,9 @@ class ValidEpoch(Epoch):
             if self.metrics_seg is not None:
                 src_label = batch['label']
                 # Create pseudo-labels by randomly deforming the image
-                tgt_label = self.geometric_transform(src_label, theta)
+                tgt_label = self.geometric_transform(src_label.float(), theta)
                 # Trim the center of the original image
-                pred_label = self.geometric_transform(src_label, pred_theta)
+                pred_label = self.geometric_transform(src_label.float(), pred_theta)
                 # metrics
                 self.update_metrics(tgt_label, pred_label, self.metrics_seg)
 

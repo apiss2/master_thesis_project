@@ -36,7 +36,7 @@ if __name__ == '__main__':
     else:
         assert False, f'No such task : {settings.task_name}'
 
-    kargs = {'device': DEVICE, 'geometric':settings.geometric}
+    kargs = {'device': DEVICE}
 
     # datasets
     train_aug = aug.get_transforms(settings.aug_settings_path, train=True)
@@ -102,7 +102,7 @@ if __name__ == '__main__':
             sample = model.forward(torch.rand((2, 3, settings.image_size, settings.image_size)))
         decoder_1 = CNNGeometricDecoder(sample, output_dim=settings.cnn_output_dim)
         decoder_2 = CNNGeometricDecoder(sample, output_dim=settings.cnn_output_dim)
-        kargs.update({'model': model, 'decoder_1': decoder_1, 'decoder_2': decoder_2})
+        kargs.update({'model': model, 'decoder_1': decoder_1, 'decoder_2': decoder_2, 'geometric':settings.geometric})
     else:
         model = CNNGeometric(encoder=settings.encoder,
                         in_channels=settings.in_channels,
@@ -132,7 +132,7 @@ if __name__ == '__main__':
             last_activation = 'sigmoid'
         with torch.no_grad():
             sample = torch.rand((2, 3, settings.image_size, settings.image_size))
-            sample = model.encoder.forward(sample)[-1]
+            sample = model.encoder.forward(sample)
         model_D = Discriminator(sample, settings.discriminator_channels,
             batchnorm=batchnorm, gradient_reversal=gradient_reversal,
             use_GAP=False, last_activation=last_activation)
@@ -140,22 +140,25 @@ if __name__ == '__main__':
 
     # loss function
     print('loss : ', settings.loss)
-    loss = opt_util.get_loss(settings.loss, geometric=settings.geometric)
+    loss = opt_util.get_loss(settings.loss, geometric=settings.geometric, device=DEVICE)
     kargs.update({'loss': loss})
     if settings.task_name == 'cnngeometric':
         pass
     else:
         print('loss_D  : ', settings.loss_D)
-        loss_D  = opt_util.get_loss(settings.loss_D)
+        loss_D  = opt_util.get_loss(settings.loss_D, sum=True)
         kargs.update({'loss_D': loss_D})
 
     # metric function
     print('metrics : ', settings.metrics)
-    metrics = [opt_util.get_metric(name, geometric=settings.geometric) for name in settings.metrics]
+    metrics = [opt_util.get_metric(name, geometric=settings.geometric, device=DEVICE) for name in settings.metrics]
     kargs.update({'metrics': metrics})
     if settings.metrics_seg is not None:
         print('metrics_seg : ', settings.metrics_seg)
-        metrics_seg = [opt_util.get_metric(name) for name in settings.metrics_seg]
+        if settings.class_num==1:
+            metrics_seg = [opt_util.get_metric(name) for name in settings.metrics_seg]
+        else:
+            metrics_seg = [opt_util.get_metric(name, ignore_channels=[0]) for name in settings.metrics_seg]
         kargs.update({'metrics_seg': metrics_seg})
     else:
         metrics_seg = None
@@ -222,7 +225,12 @@ if __name__ == '__main__':
 
         # save model
         if utils.is_best_score(valid_logs, settings.monitor_metric, best_score):
-            torch.save(model.state_dict(), settings.model_save_path)
+            if 'MCCDA' in settings.task_name:
+                torch.save(train_epoch.model.state_dict(), os.path.join(settings.save_dir, 'best_encoder.pth'))
+                torch.save(train_epoch.decoder_2.state_dict(), os.path.join(settings.save_dir, 'best_decoder_1.pth'))
+                torch.save(train_epoch.decoder_1.state_dict(), os.path.join(settings.save_dir, 'best_decoder_2.pth'))
+            else:
+                torch.save(train_epoch.model.state_dict(), settings.model_save_path)
             best_score = valid_logs[settings.monitor_metric]
 
         # logging

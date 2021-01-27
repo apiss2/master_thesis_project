@@ -1,3 +1,4 @@
+import os
 import warnings
 warnings.simplefilter('ignore')
 
@@ -94,7 +95,6 @@ if __name__ == '__main__':
     kargs.update({'geometric_transform': geometric_transform})
 
     # model definition
-    print('model : ', settings.model)
     print('encoder : ', settings.encoder)
     if 'MCDDA' in settings.task_name:
         model = FeatureExtraction(name=settings.encoder, depth=settings.depth, weights=settings.weights)
@@ -103,6 +103,12 @@ if __name__ == '__main__':
         decoder_1 = CNNGeometricDecoder(sample, output_dim=settings.cnn_output_dim)
         decoder_2 = CNNGeometricDecoder(sample, output_dim=settings.cnn_output_dim)
         kargs.update({'model': model, 'decoder_1': decoder_1, 'decoder_2': decoder_2, 'geometric':settings.geometric})
+        if settings.pretrained_encoder_path is not None:
+            state_dict = torch.load(settings.pretrained_encoder_path)
+            state_dict['_fc.bias'] = None
+            state_dict['_fc.weight'] = None
+            model.model.load_state_dict(state_dict)
+            kargs.update({'freeze_encoder': True})
     else:
         model = CNNGeometric(encoder=settings.encoder,
                         in_channels=settings.in_channels,
@@ -111,10 +117,13 @@ if __name__ == '__main__':
                         output_dim=settings.cnn_output_dim,
                         input_size=settings.image_size,
                         freeze_encoder=settings.freeze_encoder)
-
         if settings.pretrained_encoder_path is not None:
-            model.encoder.load_state_dict(torch.load(settings.pretrained_encoder_path))
-        kargs.update({'model': model})
+            state_dict = torch.load(settings.pretrained_encoder_path)
+            state_dict['_fc.bias'] = None
+            state_dict['_fc.weight'] = None
+            model.encoder.model.load_state_dict(state_dict)
+            kargs.update({'freeze_encoder': True})
+    kargs.update({'model': model})
 
     # discriminator definition
     if settings.task_name == 'cnngeometric':
@@ -132,7 +141,7 @@ if __name__ == '__main__':
             last_activation = 'sigmoid'
         with torch.no_grad():
             sample = torch.rand((2, 3, settings.image_size, settings.image_size))
-            sample = model.encoder.forward(sample)
+            sample = model.encoder.forward(sample)[-1]
         model_D = Discriminator(sample, settings.discriminator_channels,
             batchnorm=batchnorm, gradient_reversal=gradient_reversal,
             use_GAP=False, last_activation=last_activation)
@@ -146,7 +155,10 @@ if __name__ == '__main__':
         pass
     else:
         print('loss_D  : ', settings.loss_D)
-        loss_D  = opt_util.get_loss(settings.loss_D, sum=True)
+        if '2D' in settings.loss_D:
+            loss_D  = opt_util.get_loss(settings.loss_D, sum=True)
+        else:
+            loss_D  = opt_util.get_loss(settings.loss_D)
         kargs.update({'loss_D': loss_D})
 
     # metric function
@@ -202,7 +214,7 @@ if __name__ == '__main__':
                                         T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
         schedulers.append(scheduler_2)
     else:
-        scheduler_D = opt_util.get_scheduler(settings.scheduler_type, optimizer, milestones=settings.decay_schedule, gamma=settings.gamma,
+        scheduler_D = opt_util.get_scheduler(settings.scheduler_type, optimizer_D, milestones=settings.decay_schedule, gamma=settings.gamma,
                                     T_max=settings.epochs, eta_min=settings.eta_min, warmupepochs=settings.warmupepochs)
         schedulers.append(scheduler_D)
 
@@ -215,27 +227,38 @@ if __name__ == '__main__':
     train_epoch = TrainEpoch(**kargs)
 
     # training
-    best_score = 0
     for epoch in range(settings.epochs):
-        print('[Epoch {:03}]'.format(epoch))
-
+        print('[Epoch {:03}] (lr = {:03})'.format(epoch, optimizer.param_groups[0]['lr']))
         # training
         train_logs = train_epoch.run(train_loader)
         valid_logs = valid_epoch.run(valid_loader)
 
         # save model
-        if utils.is_best_score(valid_logs, settings.monitor_metric, best_score):
-            if 'MCCDA' in settings.task_name:
+        save_flug = False
+        if epoch==0:
+            best_score = valid_logs[settings.monitor_metric]
+        elif utils.is_best_score(valid_logs, settings.monitor_metric, best_score, maximize=False):
+            if 'MCDDA' in settings.task_name:
                 torch.save(train_epoch.model.state_dict(), os.path.join(settings.save_dir, 'best_encoder.pth'))
                 torch.save(train_epoch.decoder_2.state_dict(), os.path.join(settings.save_dir, 'best_decoder_1.pth'))
                 torch.save(train_epoch.decoder_1.state_dict(), os.path.join(settings.save_dir, 'best_decoder_2.pth'))
+                best_score = valid_logs[settings.monitor_metric]
+                save_flug=True
+            elif 'WDGR' in settings.task_name:
+                if abs(valid_logs['WassersteinGPLoss'])<2:
+                    torch.save(train_epoch.model.state_dict(), settings.model_save_path)
+                    best_score = valid_logs[settings.monitor_metric]
+                    save_flug=True
             else:
                 torch.save(train_epoch.model.state_dict(), settings.model_save_path)
-            best_score = valid_logs[settings.monitor_metric]
+                best_score = valid_logs[settings.monitor_metric]
+                save_flug=True
+        if save_flug:
+            print('!!!Save model!!!')
 
         # logging
-        train_msg = '[Epoch {:03}] '.format(epoch)
-        valid_msg = '[Epoch {:03}] '.format(epoch)
+        train_msg = '[Epoch {:03}](Save model = {}) '.format(epoch, str(save_flug).rjust(5))
+        valid_msg = '[Epoch {:03}](Save model = {}) '.format(epoch, str(save_flug).rjust(5))
         for metric_name in list(train_logs.keys()):
             train_msg += ' | {}:{:02.4f}'.format(metric_name, train_logs[metric_name])
             valid_msg += ' | {}:{:02.4f}'.format(metric_name, valid_logs[metric_name])
@@ -244,3 +267,11 @@ if __name__ == '__main__':
 
         for s in schedulers:
             s.step()
+
+    if 'MCDDA' in settings.task_name:
+        torch.save(train_epoch.model.state_dict(), os.path.join(settings.save_dir, 'last_encoder.pth'))
+        torch.save(train_epoch.decoder_2.state_dict(), os.path.join(settings.save_dir, 'last_decoder_1.pth'))
+        torch.save(train_epoch.decoder_1.state_dict(), os.path.join(settings.save_dir, 'last_decoder_2.pth'))
+        save_flug=True
+    else:
+        torch.save(train_epoch.model.state_dict(), os.path.join(settings.save_dir, 'last_model.pth'))

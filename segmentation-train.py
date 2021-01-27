@@ -1,3 +1,4 @@
+import os
 import warnings
 warnings.simplefilter('ignore')
 
@@ -12,9 +13,8 @@ from src.models import segmentation as seg
 # dataset
 from src.dataset.segmentation_dataset import SegmentationDataset, DASegmentationDataset
 from src.dataset import albmentation_augmentation as aug
-# training
-from src.utils import opt_util
 # utils
+from src.utils import opt_util
 from src.utils import utils
 import settings
 
@@ -101,10 +101,24 @@ if __name__ == '__main__':
         decoder_2 = seg.SegmentationDecoder(settings.model, sample, depth=settings.depth,
             activation=settings.activation, classes=settings.class_num)
         kargs.update({'model': model, 'decoder_1': decoder_1, 'decoder_2': decoder_2})
+
+        if settings.pretrained_model_path:
+            import os
+            import sys
+            model.load_state_dict(torch.load(settings.pretrained_model_path))
+            torch.save(model.state_dict(), os.path.join(settings.save_dir, 'best_encoder.pth'))
+            sys.exit()
     else:
         model = seg.get_SegmentationModel(settings.model, settings.encoder, activation=settings.activation,\
             encoder_weights=settings.weights, depth=settings.depth, class_num=settings.class_num)
         kargs.update({'model': model})
+
+        if settings.pretrained_model_path:
+            import os
+            import sys
+            model.load_state_dict(torch.load(settings.pretrained_model_path))
+            torch.save(model.encoder.state_dict(), os.path.join(settings.save_dir, 'best_encoder.pth'))
+            sys.exit()
 
     # discriminator definition
     if settings.task_name == 'cnngeometric':
@@ -194,7 +208,6 @@ if __name__ == '__main__':
     train_epoch = TrainEpoch(**kargs)
 
     # training
-    best_score = 0
     for epoch in range(settings.epochs):
         print('[Epoch {:03}]'.format(epoch))
         # training
@@ -202,10 +215,17 @@ if __name__ == '__main__':
         valid_logs = valid_epoch.run(valid_loader)
 
         # save model
-        if utils.is_best_score(valid_logs, settings.monitor_metric, best_score) and epoch>=int(settings.epochs/2):
-            torch.save(model.state_dict(), settings.model_save_path)
+        if epoch==0:
+            best_score = valid_logs[settings.monitor_metric] 
+        elif utils.is_best_score(valid_logs, settings.monitor_metric, best_score):
+            print('! save model !')
+            if 'MCDDA' in settings.task_name:
+                torch.save(train_epoch.model.state_dict(), os.path.join(settings.save_dir, 'best_encoder.pth'))
+                torch.save(train_epoch.decoder_2.state_dict(), os.path.join(settings.save_dir, 'best_decoder_1.pth'))
+                torch.save(train_epoch.decoder_1.state_dict(), os.path.join(settings.save_dir, 'best_decoder_2.pth'))
+            else:
+                torch.save(train_epoch.model.state_dict(), settings.model_save_path)
             best_score = valid_logs[settings.monitor_metric]
-
         # logging
         train_msg = '[Epoch {:03}] '.format(epoch)
         valid_msg = '[Epoch {:03}] '.format(epoch)

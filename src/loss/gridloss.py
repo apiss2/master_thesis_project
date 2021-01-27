@@ -45,7 +45,7 @@ class TransformedGridLoss(nn.Module):
 
     def _mse(self, P_prime, P_prime_GT):
         # compute MSE loss on transformed grid points
-        loss = torch.sum(torch.pow(P_prime - P_prime_GT,2),1)
+        loss = torch.sum(torch.pow(P_prime - P_prime_GT, 2), 1)
         loss = torch.mean(loss)
         return loss
 
@@ -57,13 +57,18 @@ class TransformedGridLoss(nn.Module):
 class GridMetric(TransformedGridLoss):
     __name__ = 'GridMetric'
 
-    def __init__(self, geometric='affine', device='cpu', grid_size=20):
+    def __init__(self, geometric='affine', device='cpu', grid_size=20, image_size=256):
         super().__init__(\
             geometric=geometric, device=device, grid_size=grid_size)
+        self.image_size = image_size
+
+    def _distance(self, P_prime, P_prime_GT):
+        # compute MSE loss on transformed grid points
+        x = torch.sum(torch.abs(P_prime - P_prime_GT)** 2, dim=1)
+        x = torch.mean(torch.sqrt(x), dim=1)
+        return torch.mean(x)*self.image_size/2
 
     def forward(self, theta, theta_GT):
         P = self._expand_grid(theta)
         P_prime, P_prime_GT = self._transform_grid_points(P, theta, theta_GT)
-        loss = self._mse(P_prime, P_prime_GT)
-        metric = 1-loss
-        return (metric>0)*metric
+        return self._distance(P_prime, P_prime_GT)

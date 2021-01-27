@@ -36,50 +36,52 @@ class TrainEpoch(GANEpoch):
 
     def on_epoch_start(self):
         self.iter = 0
-        self.set_requires_grad(self.model, requires_grad=False)
         self.model.eval()
-        self.set_requires_grad(self.model_D, requires_grad=False)
+        self.set_requires_grad(self.model, requires_grad=False)
         self.model_D.eval()
+        self.set_requires_grad(self.model_D, requires_grad=False)
 
     def batch_update(self, batch):
         self.iter += 1
         x_A, y_A, theta_A = batch['x_A'], batch['y_A'], batch['theta_A']
         x_B, y_B, theta_B = batch['x_B'], batch['y_B'], batch['theta_B']
 
-        for i, (x, y, theta) in enumerate(zip([x_A, x_B], [y_A, y_B], [theta_A, theta_B])):
+        ### update discriminator ###
+        if self.iter % self.modelupdate_freq == 0:
+            self.model.encoder.train()
+            self.set_requires_grad(self.model, requires_grad=True)
+        if self.iter%self.discupdate_freq == 0:
+            self.model_D.train()
+            self.set_requires_grad(self.model_D, requires_grad=True)
+        for i, x in enumerate([x_A, x_B]):
+            #y_D = (torch.rand(x.size()[0]) * 0.2 + 0.8 * i).to(self.device)
             y_D = (torch.ones(x.size()[0])*i).to(self.device)
-            tgt_x = self.geometric_transform(x, theta)
-            ### update discriminator ###
-            self.model.eval()
-            self.set_requires_grad(self.model, requires_grad=False)
-            self.model_D.eval()
-            self.set_requires_grad(self.model_D, requires_grad=False)
+            half = (torch.ones(x.size()[0])/2).to(self.device)
             if self.iter % self.modelupdate_freq == 0:
-                self.model.encoder.train()
-                self.set_requires_grad(self.model.encoder, requires_grad=True)
                 self.optimizer.zero_grad()
-            if self.iter%self.discupdate_freq == 0:
-                self.model_D.train()
-                self.set_requires_grad(self.model_D, requires_grad=True)
+            if self.iter % self.discupdate_freq == 0:
                 self.optimizer_D.zero_grad()
             # predict
-            features = self.model.encoder.forward(x)[-1]
+            features = self.model.encoder.forward(x)
             pred_D = self.model_D.forward(features).squeeze()
             loss, _ = self.update_loss(y_D, pred_D, self.loss_D)
+            loss += torch.mean(half - torch.abs(pred_D-half))
             # backward
             loss.backward()
             if self.iter % self.modelupdate_freq == 0:
                 self.optimizer.step()
             if self.iter % self.discupdate_freq == 0:
                 self.optimizer_D.step()
-                self.update_metrics(y_D, pred_D, self.metrics_D)
+            self.update_metrics(y_D, pred_D, self.metrics_D)
 
-            ### update generator ###
-            self.model.train()
-            self.set_requires_grad(self.model, requires_grad=True)
-            self.model_D.eval()
-            self.set_requires_grad(self.model_D, requires_grad=False)
+        self.model.train()
+        self.set_requires_grad(self.model, requires_grad=True)
+        self.model_D.eval()
+        self.set_requires_grad(self.model_D, requires_grad=False)
+        for i, (x, y, theta) in enumerate(zip([x_A, x_B], [y_A, y_B], [theta_A, theta_B])):
+            tgt_x = self.geometric_transform(x, theta)
             self.optimizer.zero_grad()
+            ### update generator ###
             # predict
             pred_theta = self.model.forward(x, tgt_x)
             loss, _ = self.update_loss(theta, pred_theta, self.loss)
@@ -132,7 +134,7 @@ class ValidEpoch(GANEpoch):
             with torch.no_grad():
                 ### update discriminator ###
                 # predict
-                features = self.model.encoder.forward(x)[-1]
+                features = self.model.encoder.forward(x)
                 pred_D = self.model_D.forward(features).squeeze()
                 # logging
                 self.update_loss(y_D, pred_D, self.loss_D)

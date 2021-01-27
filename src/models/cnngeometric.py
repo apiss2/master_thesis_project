@@ -19,11 +19,12 @@ class CNNGeometric(nn.Module):
                  fr_kernel_sizes=[3,3,3],
                  fr_channels=[128,64,32],
                  corr_type='3D',
+                 make_dilated=False,
                  freeze_encoder=True):
         super(CNNGeometric, self).__init__()
         assert len(fr_channels)==len(fr_kernel_sizes), 'The list of channels must match the list of kernel sizes in length.'
 
-        self.encoder = FeatureExtraction(encoder, in_channels=in_channels,
+        self.encoder = FeatureExtraction(encoder, in_channels=in_channels, make_dilated=make_dilated,
                                 depth=depth, weights=weights, freeze=freeze_encoder)
         self.correlater = FeatureCorrelation(shape=corr_type)
 
@@ -37,21 +38,25 @@ class CNNGeometric(nn.Module):
                                                    kernel_sizes=fr_kernel_sizes,
                                                    channels=fr_channels)
 
-    def forward(self, src_image, tgt_image):
+    def forward(self, src_image, tgt_image,
+                output_features=False, output_src_features=False):
         # feature extraction
-        feature_A = self.encoder(src_image)
-        feature_B = self.encoder(tgt_image)
+        feature_A = self.encoder(src_image)[-1]
+        feature_B = self.encoder(tgt_image)[-1]
         # feature correlation
         correlation = self.correlater(feature_A, feature_B)
         # regression
         theta = self.regresser(correlation)
-
+        if output_features:
+            return theta, feature_A, feature_B
+        if output_src_features:
+            return theta, feature_A
         return theta
 
     def __test_forward(self, image):
         # feature extraction
-        feature_A = self.encoder(image)
-        feature_B = self.encoder(image)
+        feature_A = self.encoder(image)[-1]
+        feature_B = self.encoder(image)[-1]
         # feature correlation
         correlation = self.correlater(feature_A,feature_B)
         return correlation
@@ -78,7 +83,7 @@ class CNNGeometricDecoder(nn.Module):
 
     def forward(self, feature_A, feature_B):
         # feature correlation
-        correlation = self.correlater(feature_A, feature_B)
+        correlation = self.correlater(feature_A[-1], feature_B[-1])
         # regression
         theta = self.regresser(correlation)
         return theta
@@ -87,3 +92,17 @@ class CNNGeometricDecoder(nn.Module):
         # feature correlation
         correlation = self.correlater(sample, sample)
         return correlation
+
+
+class CNNGeometric_MCDDA(nn.Module):
+    def __init__(self, encoder, decoder):
+        super(CNNGeometric_MCDDA, self).__init__()
+        self.encoder = encoder
+        self.decoder = decoder
+
+    def forward(self, src_image, tgt_image):
+        # feature extraction
+        feature_A = self.encoder(src_image)[-1]
+        feature_B = self.encoder(tgt_image)[-1]
+        theta = self.decoder(feature_A, feature_B)
+        return theta

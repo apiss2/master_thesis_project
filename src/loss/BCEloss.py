@@ -6,7 +6,7 @@ class BCELoss(torch.nn.BCELoss):
     __name__ = 'BCEloss'
 
 class BCEWithLogitsLoss(torch.nn.BCEWithLogitsLoss):
-    __name__ = 'BCEloss'
+    __name__ = 'BCEWithLogitsLoss'
 
 class DiceBCELoss(nn.Module):
     def __init__(self, weight=None, size_average=True, activation=False):

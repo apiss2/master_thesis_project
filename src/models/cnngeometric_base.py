@@ -9,19 +9,25 @@ import numpy.matlib
 import segmentation_models_pytorch as smp
 from segmentation_models_pytorch.encoders import get_encoder
 
+
 class FeatureExtraction(torch.nn.Module):
     def __init__(self, name, in_channels=3, depth=5,
-                weights=None, freeze=True):
+                weights=None, freeze=True, make_dilated=False):
         super(FeatureExtraction, self).__init__()
         self.model = get_encoder(name, in_channels, depth, weights)
-
+        if make_dilated:
+            self.model.make_dilated(
+                            stage_list=[4, 5],
+                            dilation_list=[2, 4]
+                            )
         # freeze parameters
         if freeze:
             for param in self.model.parameters():
                 param.requires_grad = False
 
     def forward(self, image_batch):
-        return self.model(image_batch)[-1]
+        return self.model(image_batch)
+
 
 class FeatureCorrelation(torch.nn.Module):
     def __init__(self,shape='3D'):
@@ -53,6 +59,7 @@ class FeatureCorrelation(torch.nn.Module):
         correlation_tensor = featureL2Norm(self.ReLU(correlation_tensor))
         return correlation_tensor
 
+
 class FeatureRegression(nn.Module):
     def __init__(self, output_dim=6, input_shape=(225,15,15),
                     kernel_sizes=[3,3,3], channels=[128,64,32]):
@@ -82,6 +89,7 @@ class FeatureRegression(nn.Module):
         x = x.reshape(x.size(0), -1)
         x = self.linear(x)
         return x
+
 
 def featureL2Norm(feature):
     epsilon = 1e-6

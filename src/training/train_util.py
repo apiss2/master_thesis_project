@@ -136,21 +136,21 @@ class WDGREpoch(Epoch):
         self.loss_D = self.loss_D.to(self.device)
         self.metrics_D = [metric.to(self.device) for metric in self.metrics_D]
 
+
 class MultiTaskEpoch(Epoch):
     """This is the code written with reference to https://github.com/qubvel/segmentation_models.pytorch"""
-    def __init__(self, encoder,
+    def __init__(self, model, loss, metrics: list,
             decoder_seg, loss_seg, metrics_seg:list,
-            decoder_geo, loss_geo, metrics_geo:list,
             model_D, loss_D, metrics_D:list,
             device:str='cpu', stage_name='train'
             ):
-        self.encoder = encoder
+        self.model = model
+        self.loss = loss
+        self.metrics = metrics
+
         self.decoder_seg = decoder_seg
-        self.decoder_geo = decoder_geo
         self.loss_seg = loss_seg
-        self.loss_geo = loss_geo
         self.metrics_seg = metrics_seg
-        self.metrics_geo = metrics_geo
 
         self.model_D = model_D
         self.loss_D = loss_D
@@ -162,20 +162,21 @@ class MultiTaskEpoch(Epoch):
         self._to_device()
 
     def _to_device(self):
-        self.encoder = self.encoder.to(self.device)
+        self.model = self.model.to(self.device)
+        self.loss = self.loss.to(self.device)
+        self.metrics = [metric.to(self.device) for metric in self.metrics]
+
         self.decoder_seg = self.decoder_seg.to(self.device)
-        self.decoder_geo = self.decoder_geo.to(self.device)
         self.loss_seg = self.loss_seg.to(self.device)
-        self.loss_geo = self.loss_geo.to(self.device)
         self.metrics_seg = [metric.to(self.device) for metric in self.metrics_seg]
-        self.metrics_geo = [metric.to(self.device) for metric in self.metrics_geo]
 
         self.model_D = self.model_D.to(self.device)
         self.loss_D = self.loss_D.to(self.device)
         self.metrics_D = [metric.to(self.device) for metric in self.metrics_D]
 
     def reset_meters(self):
-        losses = [self.loss_seg, self.loss_geo, self.loss_D]
+        losses = [self.loss, self.loss_seg, self.loss_D]
         self.loss_meters = {loss.__name__: AverageValueMeter() for loss in losses}
-        metrics = self.metrics_seg + self.metrics_geo + self.metrics_D
+        metrics = self.metrics + self.metrics_seg + self.metrics_D
         self.metrics_meters = {metric.__name__: AverageValueMeter() for metric in metrics}
+

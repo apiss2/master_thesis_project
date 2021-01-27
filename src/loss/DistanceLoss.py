@@ -17,7 +17,7 @@ class WassersteinGPLoss(nn.Module):
         super(WassersteinGPLoss, self).__init__()
 
     def forward(self, wasserstein_distance, gp, gamma=10):
-        return wasserstein_distance + gamma*gp
+        return -wasserstein_distance + gamma*gp
 
 
 class WassersteinDistance(nn.Module):

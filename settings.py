@@ -95,10 +95,12 @@ in_channels = config.getint('in_channels')
 depth = config.getint('depth')
 weights = config.get('weights')
 activation = config.get('activation')
+make_dilated = config.getboolean('make_dilated') if config.getboolean('make_dilated') is not None else False
 
 freeze_encoder = config.getboolean('freeze_encoder')
 pretrained_model_path = config.get('pretrained_model_path')
 pretrained_encoder_path = config.get('pretrained_encoder_path')
+pretrained_decoder_path = config.get('pretrained_decoder_path')
 padding_mode = config.get('padding_mode')
 
 if config.get('discriminator_channels') is not None:
@@ -106,12 +108,13 @@ if config.get('discriminator_channels') is not None:
 
 # loss func
 loss = config.get('loss')
+loss_seg = config.get('loss_seg')
 loss_D = config.get('loss_D')
 class_weight_path = utils.get_path(dataset_base_path, config.get('class_weight'))
 class_weight = utils.get_classWeight(class_weight_path)
 
 # metrics
-metrics = config.get('metrics').split('-')
+metrics = config.get('metrics').split('-') if config.get('metrics') is not None else None
 metrics_D = config.get('metrics_D').split('-') if config.get('metrics_D') is not None else None
 metrics_seg = config.get('metrics_seg').split('-') if config.get('metrics_seg') is not None else None
 metrics_test = config.get('metrics_test').split('-') if config.get('metrics_test') is not None else None

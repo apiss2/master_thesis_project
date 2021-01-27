@@ -5,7 +5,7 @@ from .train_util import GANEpoch
 class TrainEpoch(GANEpoch):
     def __init__(self, model, loss, metrics:list, optimizer,
                     model_D, loss_D, metrics_D:list, optimizer_D,
-                    modelupdate_freq:int=10, discupdate_freq:int=10,
+                    modelupdate_freq:int=1, discupdate_freq:int=1,
                     device:str='cpu'):
         super().__init__(
             model=model, loss=loss, metrics=metrics,
@@ -27,25 +27,29 @@ class TrainEpoch(GANEpoch):
         x_A, y_A = batch['x_A'], batch['y_A']
         x_B, y_B = batch['x_B'], batch['y_B']
 
-        for i, (x, y) in enumerate(zip([x_A, x_B], [y_A, y_B])):
-            y_D = (torch.ones(x.size()[0])*(1-i)).to(self.device)
-            ### update discriminator ###
-            self.model.eval()
-            self.set_requires_grad(self.model, requires_grad=False)
-            self.model_D.eval()
-            self.set_requires_grad(self.model_D, requires_grad=False)
+        self.model.eval()
+        self.set_requires_grad(self.model, requires_grad=False)
+        self.model_D.eval()
+        self.set_requires_grad(self.model_D, requires_grad=False)
+        if self.iter % self.modelupdate_freq == 0:
+            self.set_requires_grad(self.model.encoder, requires_grad=True)
+            self.model.encoder.train()
+        if self.iter % self.discupdate_freq == 0:
+            self.set_requires_grad(self.model_D, requires_grad=True)
+            self.model_D.train()
+        for i, x in enumerate([x_A, x_B]):
             if self.iter % self.modelupdate_freq == 0:
-                self.set_requires_grad(self.model.encoder, requires_grad=True)
-                self.model.encoder.train()
                 self.optimizer.zero_grad()
             if self.iter % self.discupdate_freq == 0:
-                self.set_requires_grad(self.model_D, requires_grad=True)
-                self.model_D.train()
                 self.optimizer_D.zero_grad()
+            y_D = (torch.ones(x.size()[0])*(1-i)).to(self.device)
+            half = (torch.ones(x.size()[0])/2).to(self.device)
+            ### update discriminator ###
             # predict
             features = self.model.encoder.forward(x)[-1]
             pred_D = self.model_D.forward(features).squeeze()
             loss, _ = self.update_loss(y_D, pred_D, self.loss_D)
+            loss += torch.mean(half - torch.abs(pred_D-half))
             # backward
             loss.backward()
             if self.iter%self.modelupdate_freq==0:
@@ -54,12 +58,13 @@ class TrainEpoch(GANEpoch):
                 self.optimizer_D.step()
             self.update_metrics(y_D, pred_D, self.metrics_D)
 
+        self.set_requires_grad(self.model, requires_grad=True)
+        self.model.train()
+        self.set_requires_grad(self.model_D, requires_grad=False)
+        self.model_D.eval()
+        self.optimizer.zero_grad()
+        for x, y in zip([x_A, x_B], [y_A, y_B]):
             ### update generator ###
-            self.set_requires_grad(self.model, requires_grad=True)
-            self.model.train()
-            self.set_requires_grad(self.model_D, requires_grad=False)
-            self.model_D.eval()
-            self.optimizer.zero_grad()
             # predict
             pred = self.model.forward(x)
             loss, _ = self.update_loss(y, pred, self.loss)

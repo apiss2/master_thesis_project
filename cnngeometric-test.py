@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 # model
 from src.models.DA_model import Discriminator
-from src.models.cnngeometric import CNNGeometric, CNNGeometricDecoder
+from src.models.cnngeometric import CNNGeometric, CNNGeometricDecoder, CNNGeometric_MCDDA
 from src.models.cnngeometric_base import FeatureExtraction
 from src.transformation.core import GeometricTnf
 # dataset
@@ -30,28 +30,18 @@ if __name__ == '__main__':
     # datasets
     test_aug = aug.get_transforms(settings.aug_settings_path, train=False)
 
-    if settings.task_name == 'cnngeometric':
-        test_image_pathes = utils.get_pathes(settings.test_image_path)
-        test_label_pathes = utils.get_pathes(settings.test_label_path)
+    image_A_test_pathes = utils.get_pathes(settings.image_A_test_path)
+    label_A_test_pathes = utils.get_pathes(settings.label_A_test_path)
+    image_B_test_pathes = utils.get_pathes(settings.image_B_test_path)
+    label_B_test_pathes = utils.get_pathes(settings.label_B_test_path)
 
-        test_dataset = GeometricDataset(image_pathes=test_image_pathes, label_pathes=test_label_pathes,\
-                                        geometric=settings.geometric, augmentation=test_aug,\
-                                        class_num=settings.class_num, mean=settings.mean, std=settings.std,\
-                                        random_t_tps=settings.random_t_tps,\
-                                        label_type=settings.label_type, color_palette=settings.color_palette)
-    else:
-        image_A_test_pathes = utils.get_pathes(settings.image_A_test_path)
-        label_A_test_pathes = utils.get_pathes(settings.label_A_test_path)
-        image_B_test_pathes = utils.get_pathes(settings.image_B_test_path)
-        label_B_test_pathes = utils.get_pathes(settings.label_B_test_path)
-
-        test_dataset = DAGeometricDataset(image_A_test_pathes, label_A_test_pathes,
-                            image_B_test_pathes, label_B_test_pathes,
-                            class_num=settings.class_num, color_palette=settings.color_palette,
-                            label_type=settings.label_type, geometric=settings.geometric,
-                            mean_A=settings.mean_A, std_A=settings.std_A,
-                            mean_B=settings.mean_B, std_B=settings.std_B,
-                            augmentation=test_aug)
+    test_dataset = DAGeometricDataset(image_A_test_pathes, label_A_test_pathes,
+                        image_B_test_pathes, label_B_test_pathes,
+                        class_num=settings.class_num, color_palette=settings.color_palette,
+                        label_type=settings.label_type, geometric=settings.geometric,
+                        mean_A=settings.mean_A, std_A=settings.std_A,
+                        mean_B=settings.mean_B, std_B=settings.std_B,
+                        augmentation=test_aug)
 
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
@@ -62,16 +52,15 @@ if __name__ == '__main__':
     # model definition
     print('model : ', settings.model)
     print('encoder : ', settings.encoder)
-    if 'MCDDA' in settings.task_name:
-        model = FeatureExtraction(name=settings.encoder, depth=settings.depth, weights=settings.weights)
-        model.load_state_dict(torch.load(os.path.join(settings.save_dir, 'best_encoder.pth')))
+    if 'MCDDA' in settings.experiment_name:
+        encoder = FeatureExtraction(name=settings.encoder, depth=settings.depth, weights=settings.weights)
+        #encoder.load_state_dict(torch.load(settings.pretrained_encoder_path))
         with torch.no_grad():
-            sample = model.forward(torch.rand((2, 3, settings.image_size, settings.image_size)))
-        decoder_1 = CNNGeometricDecoder(sample, output_dim=settings.cnn_output_dim)
-        decoder_1.load_state_dict(torch.load(os.path.join(settings.save_dir, 'best_decoder_1.pth')))
-        decoder_2 = CNNGeometricDecoder(sample, output_dim=settings.cnn_output_dim)
-        decoder_2.load_state_dict(torch.load(os.path.join(settings.save_dir, 'best_decoder_2.pth')))
-        kargs.update({'model': model, 'decoder_1': decoder_1, 'decoder_2': decoder_2, 'geometric':settings.geometric})
+            sample = encoder.forward(torch.rand((2, 3, settings.image_size, settings.image_size)))
+        decoder = CNNGeometricDecoder(sample, output_dim=settings.cnn_output_dim)
+        #decoder.load_state_dict(torch.load(settings.pretrained_decoder_path))
+        model = CNNGeometric_MCDDA(encoder, decoder)
+        model.load_state_dict(torch.load(settings.pretrained_model_path))
     else:
         model = CNNGeometric(encoder=settings.encoder,
                         in_channels=settings.in_channels,
@@ -79,9 +68,10 @@ if __name__ == '__main__':
                         weights=settings.weights,
                         output_dim=settings.cnn_output_dim,
                         input_size=settings.image_size,
-                        freeze_encoder=settings.freeze_encoder).to(DEVICE)
+                        freeze_encoder=settings.freeze_encoder,
+                        make_dilated=settings.make_dilated).to(DEVICE)
         model.load_state_dict(torch.load(settings.pretrained_model_path))
-        kargs.update({'model': model})
+    kargs.update({'model': model})
 
     # loss function
     print('loss : ', settings.loss)
